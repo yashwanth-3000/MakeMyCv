@@ -1,7 +1,4 @@
-"""
-GitIngest API - Python FastAPI application for managing GitHub repositories
-and extracting codebase information using GitIngest service.
-"""
+"""MakeMyCv API - FastAPI app for GitHub repos, GitIngest, and social media scraping"""
 
 from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +7,7 @@ from typing import List, Optional, Dict, Any
 import requests
 import os
 from dotenv import load_dotenv
-from gitingest import ingest  # GitIngest Python package - official integration
+from gitingest import ingest  # Official GitIngest package
 import asyncio
 from functools import partial
 
@@ -36,7 +33,7 @@ app.add_middleware(
 GITHUB_API_BASE = "https://api.github.com"
 DEFAULT_GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 
-# Agent.ai Webhook URLs for various profile scraping services
+# Agent.ai webhook URLs for social media scraping
 LINKEDIN_PROFILE_WEBHOOK_URL = os.getenv(
     "LINKEDIN_PROFILE_WEBHOOK_URL", 
     "https://api.agent.ai/v1/agent/26q8jefoy5cu92k8/webhook/2ba10d43"
@@ -45,11 +42,15 @@ LINKEDIN_POSTS_WEBHOOK_URL = os.getenv(
     "LINKEDIN_POSTS_WEBHOOK_URL",
     "https://api.agent.ai/v1/agent/p4hl6dhlhp9txrg7/webhook/a55a1a47"
 )
+TWITTER_POSTS_WEBHOOK_URL = os.getenv(
+    "TWITTER_POSTS_WEBHOOK_URL",
+    "https://api.agent.ai/v1/agent/6kot83v18302uybr/webhook/11629701"
+)
 
 
 # Pydantic Models
 class Repository(BaseModel):
-    """Model for repository information"""
+    """GitHub repository data model"""
     name: str
     full_name: str
     description: Optional[str] = None
@@ -66,7 +67,7 @@ class Repository(BaseModel):
 
 
 class RepoSelectRequest(BaseModel):
-    """Request model for selecting repositories for gitingest"""
+    """GitIngest repository selection request"""
     repositories: List[str] = Field(
         ...,
         description="List of repository names (format: 'owner/repo')",
@@ -75,17 +76,17 @@ class RepoSelectRequest(BaseModel):
 
 
 class GitIngestResponse(BaseModel):
-    """Response model for gitingest data"""
+    """GitIngest single repo response"""
     repository: str
     success: bool
     summary: Optional[str] = None
     tree: Optional[str] = None
-    content: Optional[str] = None  # Only included if include_content=true
+    content: Optional[str] = None  # Included if include_content=true
     error: Optional[str] = None
 
 
 class GitIngestBatchResponse(BaseModel):
-    """Batch response for multiple gitingest requests"""
+    """GitIngest batch response"""
     results: List[GitIngestResponse]
     total_requested: int
     successful: int
@@ -93,7 +94,7 @@ class GitIngestBatchResponse(BaseModel):
 
 
 class ProfileRequest(BaseModel):
-    """Request model for LinkedIn profile fetch"""
+    """LinkedIn profile scraping request"""
     user_input: str = Field(
         ...,
         description="LinkedIn profile URL or identifier",
@@ -102,11 +103,20 @@ class ProfileRequest(BaseModel):
 
 
 class PostsRequest(BaseModel):
-    """Request model for LinkedIn posts fetch"""
+    """LinkedIn posts scraping request"""
     user_input: str = Field(
         ...,
         description="LinkedIn profile URL or identifier to fetch posts from",
         example="https://www.linkedin.com/in/pyashwanthkrishna"
+    )
+
+
+class TwitterPostsRequest(BaseModel):
+    """Twitter posts scraping request"""
+    user_input: str = Field(
+        ...,
+        description="Twitter username (without @) to fetch tweets from",
+        example="pyashwanth3000"
     )
 
 
@@ -613,6 +623,117 @@ async def fetch_linkedin_posts(user_input: str, max_wait_seconds: int = 60) -> D
         }
 
 
+def is_retweet(tweet: Dict[str, Any]) -> bool:
+    """Check if tweet text starts with 'RT @' (retweet indicator)"""
+    text = tweet.get("text", "")
+    return text.startswith("RT @")
+
+
+def filter_original_tweets(tweets_data: Any) -> Dict[str, Any]:
+    """Filter retweets, return original tweets with stats (total, original, filtered counts)"""
+    if not isinstance(tweets_data, list):
+        return {
+            "original_tweets": tweets_data,
+            "total_fetched": 0,
+            "original_count": 0,
+            "retweets_filtered": 0
+        }
+    
+    original_tweets = [tweet for tweet in tweets_data if not is_retweet(tweet)]
+    total_fetched = len(tweets_data)
+    original_count = len(original_tweets)
+    retweets_filtered = total_fetched - original_count
+    
+    print(f"📊 Filtered: {total_fetched} total → {original_count} original ({retweets_filtered} retweets removed)")
+    
+    return {
+        "original_tweets": original_tweets,
+        "total_fetched": total_fetched,
+        "original_count": original_count,
+        "retweets_filtered": retweets_filtered
+    }
+
+
+async def fetch_twitter_posts(user_input: str, max_wait_seconds: int = 60, include_retweets: bool = False) -> Dict[str, Any]:
+    """
+    Fetch Twitter posts via Agent.ai webhook (2-step: start agent, poll results, filter retweets by default)
+    Returns: {success, data, error, run_id, stats (if filtered)}
+    """
+    import time
+    
+    try:
+        # Start agent
+        start_url = f"{TWITTER_POSTS_WEBHOOK_URL}/async"
+        payload = {"user_input": user_input}
+        
+        print(f"🐦 Starting Twitter scrape for: {user_input}")
+        response = requests.post(start_url, json=payload, headers={"Content-Type": "application/json"}, timeout=10)
+        response.raise_for_status()
+        
+        data = response.json()
+        run_id = data.get("run_id")
+        
+        if not run_id:
+            return {"success": False, "data": None, "error": "No run_id received"}
+        
+        print(f"✅ Agent started: {run_id}")
+        
+        # Poll for results
+        status_url = f"{TWITTER_POSTS_WEBHOOK_URL}/status/{run_id}"
+        start_time = time.time()
+        poll_interval = 2
+        
+        while time.time() - start_time < max_wait_seconds:
+            print(f"⏳ Polling... ({int(time.time() - start_time)}s)")
+            
+            try:
+                status_response = requests.get(status_url, timeout=10)
+                
+                if status_response.status_code == 200:
+                    result_data = status_response.json()
+                    tweets_data = result_data.get("response")
+                    
+                    if tweets_data:
+                        print("✅ Tweets received!")
+                        
+                        # Filter retweets if requested
+                        if not include_retweets:
+                            filter_result = filter_original_tweets(tweets_data)
+                            return {
+                                "success": True,
+                                "data": filter_result["original_tweets"],
+                                "error": None,
+                                "run_id": run_id,
+                                "stats": {
+                                    "total_fetched": filter_result["total_fetched"],
+                                    "original_count": filter_result["original_count"],
+                                    "retweets_filtered": filter_result["retweets_filtered"]
+                                }
+                            }
+                        else:
+                            return {"success": True, "data": tweets_data, "error": None, "run_id": run_id}
+                
+                elif status_response.status_code == 204:
+                    await asyncio.sleep(poll_interval)
+                    poll_interval = min(poll_interval + 0.5, 5)
+                    continue
+                
+                else:
+                    return {"success": False, "data": None, "error": f"Status: {status_response.status_code}", "run_id": run_id}
+                    
+            except requests.RequestException as e:
+                print(f"❌ Poll error: {str(e)}")
+                await asyncio.sleep(poll_interval)
+                continue
+        
+        return {"success": False, "data": None, "error": f"Timeout after {max_wait_seconds}s", "run_id": run_id}
+        
+    except requests.RequestException as e:
+        return {"success": False, "data": None, "error": f"Agent start failed: {str(e)}"}
+    except Exception as e:
+        return {"success": False, "data": None, "error": f"Unexpected: {str(e)}"}
+
+
 # API Endpoints
 @app.get("/")
 async def root():
@@ -620,25 +741,76 @@ async def root():
     return {
         "message": "Welcome to MakeMyCv API",
         "version": "1.0.0",
-        "description": "API for GitHub repository analysis and LinkedIn data scraping",
+        "description": "API for GitHub repository analysis, LinkedIn & Twitter data scraping",
         "endpoints": {
             "GET /repos/{username}": "Get all GitHub repositories for a user",
             "POST /gitingest": "Get GitIngest extracts for selected repositories",
-            "POST /linkedin-profile": "Get LinkedIn profile details (scrapes LinkedIn profile data)",
-            "POST /linkedin-posts": "Get LinkedIn posts from a profile (scrapes LinkedIn posts data)",
+            "POST /linkedin-profile": {
+                "description": "Get LinkedIn profile details (scrapes LinkedIn profile data)",
+                "input": "Requires full LinkedIn profile URL",
+                "note": "Retrieves comprehensive profile information"
+            },
+            "POST /linkedin-posts": {
+                "description": "Get LinkedIn posts from a profile",
+                "input": "Requires full LinkedIn profile URL",
+                "retrieves": "Past 50 posts from the profile",
+                "note": "Includes engagement metrics, attachments, and author info"
+            },
+            "POST /twitter-posts": {
+                "description": "Get Twitter posts from a user (filters out retweets by default)",
+                "input": "Requires Twitter username (without @)",
+                "retrieves": "Past 50 recent tweets from the user (original tweets only)",
+                "filtering": "Automatically removes retweets (tweets starting with 'RT @')",
+                "note": "Includes engagement metrics, timestamps, and media. Use ?include_retweets=true to include retweets."
+            },
             "GET /health": "Health check endpoint"
         },
         "webhooks": {
             "linkedin_profile": "Agent.ai webhook for LinkedIn profile scraping",
-            "linkedin_posts": "Agent.ai webhook for LinkedIn posts scraping"
+            "linkedin_posts": "Agent.ai webhook for LinkedIn posts scraping (past 50 posts)",
+            "twitter_posts": "Agent.ai webhook for Twitter posts scraping (past 50 tweets)"
         }
     }
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "service": "GitIngest API"}
+    """Enhanced health check with system status and configuration info"""
+    import platform
+    import sys
+    from datetime import datetime
+    
+    return {
+        "status": "healthy",
+        "service": "MakeMyCv API",
+        "version": "1.0.0",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "endpoints": {
+            "total": 7,
+            "available": ["GET /", "GET /health", "GET /repos/{username}", 
+                         "POST /gitingest", "GET /gitingest/{owner}/{repo}",
+                         "POST /linkedin-profile", "POST /linkedin-posts", "POST /twitter-posts"]
+        },
+        "configuration": {
+            "github_token": "configured" if DEFAULT_GITHUB_TOKEN else "not_configured",
+            "linkedin_profile_webhook": "configured" if LINKEDIN_PROFILE_WEBHOOK_URL else "not_configured",
+            "linkedin_posts_webhook": "configured" if LINKEDIN_POSTS_WEBHOOK_URL else "not_configured",
+            "twitter_posts_webhook": "configured" if TWITTER_POSTS_WEBHOOK_URL else "not_configured",
+            "cors": "enabled"
+        },
+        "system": {
+            "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+            "platform": platform.system(),
+            "architecture": platform.machine()
+        },
+        "features": {
+            "github_repos": True,
+            "gitingest": True,
+            "linkedin_scraping": True,
+            "twitter_scraping": True,
+            "retweet_filtering": True
+        }
+    }
 
 
 @app.get("/repos/{username}", response_model=List[Repository])
@@ -956,6 +1128,106 @@ async def get_linkedin_posts(
         "posts": result["data"],
         "run_id": result.get("run_id")
     }
+
+
+@app.post("/twitter-posts")
+async def get_twitter_posts(
+    request: TwitterPostsRequest,
+    max_wait: int = 60,
+    include_retweets: bool = False
+):
+    """
+    Get Twitter posts from a user using Agent.ai webhook for Twitter posts scraping.
+    
+    **By default, this endpoint filters out retweets and only returns original tweets.**
+    Retweets are identified by checking if the tweet text starts with "RT @".
+    
+    This endpoint scrapes and fetches Twitter posts (tweets) data including:
+    - Tweet text content
+    - Engagement metrics (retweets, replies, likes, quotes, bookmarks, impressions)
+    - Tweet timestamps and creation dates
+    - Edit history
+    - Tweet IDs for direct linking
+    
+    Parameters:
+    - **user_input**: Twitter username (without @) to fetch tweets from
+      Examples: 
+        - "pyashwanth3000"
+        - "elonmusk"
+        - "OpenAI"
+    - **max_wait**: Maximum seconds to wait for tweets data (default: 60, range: 10-120)
+    - **include_retweets**: If False (default), filters out retweets. If True, includes all tweets.
+    
+    Returns:
+    - Twitter posts data in JSON format with the following structure:
+      - success: Boolean indicating if the operation was successful
+      - tweets: Array containing tweet objects (ONLY original tweets by default)
+      - run_id: Agent.ai run identifier for tracking
+      - stats: Filtering statistics (only when include_retweets=False)
+        - total_fetched: Total number of tweets fetched from API
+        - original_count: Number of original tweets (filtered)
+        - retweets_filtered: Number of retweets that were filtered out
+    
+    Example request body:
+    ```json
+    {
+        "user_input": "pyashwanth3000"
+    }
+    ```
+    
+    Example response structure (with filtering):
+    ```json
+    {
+        "success": true,
+        "tweets": [
+            {
+                "id": "1960432525534171432",
+                "text": "My original tweet here...",
+                "created_at": "2025-08-26T20:01:51.000Z",
+                "public_metrics": {
+                    "retweet_count": 10,
+                    "reply_count": 5,
+                    "like_count": 50,
+                    "quote_count": 2,
+                    "bookmark_count": 3,
+                    "impression_count": 1000
+                }
+            }
+        ],
+        "run_id": "run-...",
+        "stats": {
+            "total_fetched": 50,
+            "original_count": 30,
+            "retweets_filtered": 20
+        }
+    }
+    ```
+    
+    Note: 
+    - This is an async operation that may take 10-60 seconds.
+    - The endpoint will poll the Twitter posts scraping agent until results are ready.
+    - By default, retweets (tweets starting with "RT @") are filtered out.
+    - Use ?include_retweets=true to get all tweets including retweets.
+    """
+    result = await fetch_twitter_posts(request.user_input, max_wait, include_retweets)
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=500 if "Timeout" not in result["error"] else 408,
+            detail=result["error"]
+        )
+    
+    response = {
+        "success": True,
+        "tweets": result["data"],
+        "run_id": result.get("run_id")
+    }
+    
+    # Add filtering stats if available
+    if "stats" in result:
+        response["stats"] = result["stats"]
+    
+    return response
 
 
 if __name__ == "__main__":

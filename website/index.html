@@ -358,18 +358,40 @@ octocat/Hello-World</textarea>
                 <strong>POST</strong> <code>http://localhost:8000/linkedin-posts</code>
             </div>
             <div class="form-group">
-                <label for="posts-input">LinkedIn Profile URL or Username:</label>
-                <input type="text" id="posts-input" placeholder="e.g., https://www.linkedin.com/in/username or username" value="https://www.linkedin.com/in/pyashwanthkrishna">
+                <label for="posts-input">LinkedIn Profile URL:</label>
+                <input type="text" id="posts-input" placeholder="e.g., https://www.linkedin.com/in/pyashwanthkrishna" value="https://www.linkedin.com/in/pyashwanthkrishna">
             </div>
             <div class="form-group">
                 <label for="posts-max-wait">Max Wait Time (seconds):</label>
                 <input type="number" id="posts-max-wait" placeholder="60" value="60" min="10" max="120">
             </div>
             <p style="color: #666; font-size: 14px; margin-top: -10px;">
-                ⏱️ Note: This may take 10-60 seconds. Uses Agent.ai webhook to scrape LinkedIn posts data.
+                ⏱️ Note: Takes 10-60 seconds. Retrieves past 50 posts. Uses Agent.ai webhook.
             </p>
             <button onclick="getLinkedInPosts()">Fetch LinkedIn Posts</button>
             <div id="posts-response" class="response-container"></div>
+        </div>
+
+        <!-- Get Twitter Posts -->
+        <div class="api-section">
+            <h2>7. Get Twitter Posts (Twitter Posts Scraping)</h2>
+            <div class="endpoint-info">
+                <strong>POST</strong> <code>http://localhost:8000/twitter-posts</code>
+            </div>
+            <div class="form-group">
+                <label for="twitter-input">Twitter Username (without @):</label>
+                <input type="text" id="twitter-input" placeholder="e.g., pyashwanth3000" value="pyashwanth3000">
+            </div>
+            <div class="form-group">
+                <label for="twitter-max-wait">Max Wait Time (seconds):</label>
+                <input type="number" id="twitter-max-wait" placeholder="60" value="60" min="10" max="120">
+            </div>
+            <p style="color: #666; font-size: 14px; margin-top: -10px;">
+                ⏱️ Note: Takes 10-60 seconds. Retrieves past 50 tweets. Uses Agent.ai webhook.<br>
+                🔍 <strong>Filters out retweets by default</strong> - only shows original tweets.
+            </p>
+            <button onclick="getTwitterPosts()">Fetch Twitter Posts</button>
+            <div id="twitter-response" class="response-container"></div>
         </div>
     </div>
 
@@ -837,6 +859,123 @@ octocat/Hello-World</textarea>
             } catch (error) {
                 const duration = Date.now() - startTime;
                 logError(section, 'LinkedIn posts scraping failed', error);
+                logTiming(section, duration);
+                displayError(responseDiv, error);
+            }
+        }
+
+        // ============================================
+        // API CALL: GET TWITTER POSTS (Twitter Posts Scraping)
+        // ============================================
+        async function getTwitterPosts() {
+            const section = 'TWITTER POSTS';
+            const userInput = document.getElementById('twitter-input').value;
+            const maxWait = parseInt(document.getElementById('twitter-max-wait').value) || 60;
+            
+            logInfo(section, 'Starting Twitter posts scraping...');
+            logInfo(section, `Twitter Username: ${userInput}`);
+            logInfo(section, `Max Wait: ${maxWait} seconds`);
+            logInfo(section, 'Using Agent.ai webhook for Twitter posts scraping');
+            
+            const responseDiv = document.getElementById('twitter-response');
+            
+            if (!userInput) {
+                logError(section, 'No username provided');
+                alert('Please enter a Twitter username (without @)');
+                return;
+            }
+
+            responseDiv.innerHTML = '<div class="loading"></div> Fetching Twitter posts data... (this may take 10-60 seconds)';
+            responseDiv.classList.add('visible');
+
+            const startTime = Date.now();
+            const url = `${API_BASE_URL}/twitter-posts?max_wait=${maxWait}`;
+            logInfo(section, `Request URL: ${url}`);
+            logInfo(section, 'Request body:', { user_input: userInput });
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user_input: userInput })
+                });
+                
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                logInfo(section, `Response status: ${response.status}`);
+                logTiming(section, duration);
+                
+                const data = await response.json();
+                const responseSize = JSON.stringify(data).length;
+                
+                    if (response.status === 200) {
+                        logSuccess(section, 'Twitter posts scraping completed successfully! ✅');
+                        logInfo(section, `Response size: ${formatBytes(responseSize)}`);
+                        logInfo(section, 'Twitter posts data successfully scraped via Agent.ai webhook');
+
+                        // Extract Twitter posts stats
+                        const tweets = data.tweets;
+                        const filterStats = data.stats; // Filtering statistics
+                        const stats = {
+                            'Response Time': `${(duration / 1000).toFixed(2)}s`,
+                            'Response Size': formatBytes(responseSize),
+                            'Agent Run ID': data.run_id || 'N/A',
+                            'Data Source': 'Twitter Posts (Agent.ai)'
+                        };
+
+                        // Add filtering stats if available
+                        if (filterStats) {
+                            logInfo(section, `📊 Filtering Stats: ${filterStats.original_count} original tweets, ${filterStats.retweets_filtered} retweets filtered out`);
+                            stats['🔍 Filter Status'] = '✅ Retweets Filtered';
+                            stats['Total Fetched'] = filterStats.total_fetched;
+                            stats['Original Tweets'] = filterStats.original_count;
+                            stats['Retweets Filtered'] = filterStats.retweets_filtered;
+                        }
+
+                        // Calculate engagement stats from tweets array
+                        if (Array.isArray(tweets) && tweets.length > 0) {
+                            stats['Displayed Tweets'] = tweets.length;
+                            stats['Username'] = `@${userInput}`;
+
+                            // Calculate total engagement
+                            let totalRetweets = 0;
+                            let totalReplies = 0;
+                            let totalLikes = 0;
+                            let totalQuotes = 0;
+                            let totalImpressions = 0;
+
+                            tweets.forEach(tweet => {
+                                if (tweet.public_metrics) {
+                                    totalRetweets += tweet.public_metrics.retweet_count || 0;
+                                    totalReplies += tweet.public_metrics.reply_count || 0;
+                                    totalLikes += tweet.public_metrics.like_count || 0;
+                                    totalQuotes += tweet.public_metrics.quote_count || 0;
+                                    totalImpressions += tweet.public_metrics.impression_count || 0;
+                                }
+                            });
+
+                            stats['Total Retweets'] = totalRetweets;
+                            stats['Total Replies'] = totalReplies;
+                            stats['Total Likes'] = totalLikes;
+                            stats['Total Quotes'] = totalQuotes;
+                            if (totalImpressions > 0) {
+                                stats['Total Impressions'] = totalImpressions.toLocaleString();
+                            }
+                        }
+
+                        logInfo(section, 'Full Twitter posts data (retweets filtered):', data);
+                        displayResponse(responseDiv, data, response.status, duration, stats);
+                    } else {
+                        logError(section, `Twitter posts scraping failed with status ${response.status}`);
+                        logInfo(section, 'Error response:', data);
+                        displayResponse(responseDiv, data, response.status, duration);
+                    }
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                logError(section, 'Twitter posts scraping failed', error);
                 logTiming(section, duration);
                 displayError(responseDiv, error);
             }
