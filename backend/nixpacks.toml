@@ -1,0 +1,18 @@
+[phases.setup]
+aptPkgs = ['python3', 'python3-pip', 'python3-venv', 'wget', 'xz-utils']
+
+[phases.install]
+cmds = [
+  'python3 -m venv /opt/venv',
+  'mkdir -p /app/bin',
+  'wget https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.15.0/tectonic-0.15.0-x86_64-unknown-linux-musl.tar.gz',
+  'tar -xzf tectonic-0.15.0-x86_64-unknown-linux-musl.tar.gz',
+  'chmod +x tectonic',
+  'mv tectonic /app/bin/',
+  'ln -s /app/bin/tectonic /app/bin/pdflatex',
+  '/opt/venv/bin/pip install -r requirements.txt'
+]
+
+[start]
+cmd = 'PATH=/app/bin:$PATH /opt/venv/bin/uvicorn main:app --host 0.0.0.0 --port $PORT'
+

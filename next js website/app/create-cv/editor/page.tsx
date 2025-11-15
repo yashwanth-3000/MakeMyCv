@@ -2,9 +2,8 @@
 
 import * as React from "react"
 import { useState } from "react"
-import { Download, FileText, Copy, Check, Eye, Code } from "lucide-react"
+import { Download, FileText, Copy, Check, Eye, Code, Mail, Linkedin, Github, Loader2, AlertCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Navbar } from "@/components/navbar"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
@@ -30,7 +29,6 @@ const defaultLatexTemplate = `%-------------------------
 \\usepackage{fancyhdr}
 \\usepackage[english]{babel}
 \\usepackage{tabularx}
-\\input{glyphtounicode}
 
 % Custom font
 \\usepackage[default]{lato}
@@ -57,9 +55,6 @@ const defaultLatexTemplate = `%-------------------------
 \\titleformat{\\section}{
   \\vspace{-4pt}\\scshape\\raggedright\\large
 }{}{0em}{}[\\color{black}\\titlerule\\vspace{-5pt}]
-
-% Ensure that generate pdf is machine readable/ATS parsable
-\\pdfgentounicode=1
 
 %-------------------------%
 % Custom commands
@@ -108,9 +103,9 @@ const defaultLatexTemplate = `%-------------------------
 %----------HEADING----------%
 \\begin{center}
     \\textbf{\\Huge \\scshape Pavushetty Yashwanth Krishna} \\\\[5pt]
-    \\href{mailto:pyashwanthkrishna@gmail.com}{\\underline{pyashwanthkrishna@gmail.com}} \\quad
-    \\href{https://www.linkedin.com/in/pyashwanthkrishna/}{\\underline{linkedin.com/in/pyashwanthkrishna}} \\quad
-    \\href{https://github.com/yashwanth-3000}{\\underline{github.com/yashwanth-3000}}
+    \\href{mailto:pyashwanthkrishna@gmail.com}{\\seticon{faEnvelope} \\underline{pyashwanthkrishna@gmail.com}} \\quad
+    \\href{https://www.linkedin.com/in/pyashwanthkrishna/}{\\seticon{faLinkedin} \\underline{@pyashwanthkrishna}} \\quad
+    \\href{https://github.com/yashwanth-3000}{\\seticon{faGithub} \\underline{@yashwanth-3000}}
 \\end{center}
 
 %-----------EDUCATION-----------%
@@ -188,6 +183,10 @@ export default function CVEditorPage() {
   const [latexCode, setLatexCode] = useState(defaultLatexTemplate)
   const [copied, setCopied] = useState(false)
   const [showPreview, setShowPreview] = useState(true)
+  const [compiling, setCompiling] = useState(false)
+  const [compilationError, setCompilationError] = useState<string | null>(null)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [isCompilingPreview, setIsCompilingPreview] = useState(false)
 
   const handleCopy = () => {
     navigator.clipboard.writeText(latexCode)
@@ -207,40 +206,93 @@ export default function CVEditorPage() {
     URL.revokeObjectURL(url)
   }
 
+  const handleCompilePreview = async () => {
+    setIsCompilingPreview(true)
+    setCompilationError(null)
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/compile-latex`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ latex_code: latexCode }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'Compilation failed')
+      }
+
+      // Create blob URL for preview
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      
+      // Clean up old URL if exists
+      if (pdfUrl) {
+        window.URL.revokeObjectURL(pdfUrl)
+      }
+      
+      setPdfUrl(url)
+    } catch (error) {
+      console.error('Compilation error:', error)
+      setCompilationError(error instanceof Error ? error.message : 'Unknown error occurred')
+      setPdfUrl(null)
+    } finally {
+      setIsCompilingPreview(false)
+    }
+  }
+
+  const handleDownloadPDF = async () => {
+    setCompiling(true)
+    setCompilationError(null)
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/compile-latex`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ latex_code: latexCode }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'Compilation failed')
+      }
+
+      // Download the PDF
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'resume.pdf'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Compilation error:', error)
+      setCompilationError(error instanceof Error ? error.message : 'Unknown error occurred')
+    } finally {
+      setCompiling(false)
+    }
+  }
+
   return (
     <>
-      <Navbar />
-      <div className="min-h-screen bg-gray-50 pt-16">
-        {/* Header */}
-        <div className="border-b border-border bg-white">
-          <div className="max-w-[1800px] mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <FileText className="h-6 w-6 text-foreground" />
-                <div>
-                  <h1 className="text-xl font-bold text-foreground">LaTeX CV Editor</h1>
-                  <p className="text-sm text-muted-foreground">Professional resume builder with LaTeX</p>
-                </div>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header and Toolbar */}
+        <div className="bg-white sticky top-0 z-10">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">LaTeX CV Editor</h1>
+                <p className="text-sm text-muted-foreground mt-1">Edit your resume with real-time preview</p>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopy}
-                  className="gap-2"
-                >
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  {copied ? "Copied!" : "Copy LaTeX"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadTex}
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Download .tex
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -250,21 +302,106 @@ export default function CVEditorPage() {
                   {showPreview ? <Code className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   {showPreview ? "Code" : "Preview"}
                 </Button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
                 <Button
+                  variant="outline"
                   size="sm"
+                  onClick={handleCopy}
+                  className="gap-2"
+                >
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadTex}
                   className="gap-2"
                 >
                   <Download className="h-4 w-4" />
-                  Compile PDF
+                  .tex
                 </Button>
               </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={handleCompilePreview}
+                  disabled={isCompilingPreview}
+                >
+                  {isCompilingPreview ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Compiling...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4" />
+                      Compile LaTeX
+                    </>
+                  )}
+                </Button>
+                <Button
+                  size="sm"
+                  className="gap-2"
+                  onClick={handleDownloadPDF}
+                  disabled={compiling}
+                >
+                  {compiling ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Download PDF
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Info Banner - Inline */}
+            <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+              <p className="text-xs text-blue-700 flex items-center gap-2">
+                <FileText className="h-3 w-3" />
+                <span><span className="font-semibold">Tectonic LaTeX Engine</span> • Automatically optimizes commands for compilation</span>
+              </p>
             </div>
           </div>
         </div>
 
+        {/* Error Message */}
+        {compilationError && (
+          <div className="max-w-7xl mx-auto px-6 pt-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-900 mb-1">Compilation Failed</h3>
+                <p className="text-sm text-red-700 whitespace-pre-wrap">{compilationError}</p>
+              </div>
+              <button
+                onClick={() => setCompilationError(null)}
+                className="text-red-600 hover:text-red-800 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Editor and Preview */}
-        <div className="max-w-[1800px] mx-auto h-[calc(100vh-160px)]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="h-[85vh] rounded-xl overflow-hidden shadow-lg border border-gray-200 bg-white">
+            <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
             {/* LaTeX Editor */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -306,7 +443,7 @@ export default function CVEditorPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: 0.1 }}
               className={cn(
-                "bg-white overflow-auto",
+                "bg-white overflow-hidden",
                 !showPreview && "hidden",
                 showPreview && "block"
               )}
@@ -315,165 +452,50 @@ export default function CVEditorPage() {
                 <div className="px-4 py-3 border-b border-border bg-gray-50">
                   <div className="flex items-center gap-2">
                     <Eye className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">Live Preview</span>
+                    <span className="text-sm font-medium text-foreground">PDF Preview</span>
                   </div>
                 </div>
-                <div className="flex-1 overflow-auto p-8">
-                  <CVPreview latexCode={latexCode} />
+                <div className="flex-1 overflow-hidden bg-gray-100 flex items-center justify-center">
+                  {pdfUrl ? (
+                    <iframe
+                      src={pdfUrl}
+                      className="w-full h-full border-0"
+                      title="PDF Preview"
+                    />
+                  ) : (
+                    <div className="text-center p-8">
+                      <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">No Preview Available</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Click &quot;Compile LaTeX&quot; to generate a preview
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={handleCompilePreview}
+                        disabled={isCompilingPreview}
+                        className="gap-2"
+                      >
+                        {isCompilingPreview ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Compiling...
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4" />
+                            Compile LaTeX
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
+            </div>
           </div>
         </div>
       </div>
     </>
   )
 }
-
-// CV Preview Component - Renders a visual representation of the LaTeX
-function CVPreview({ latexCode }: { latexCode: string }) {
-  return (
-    <div className="max-w-[800px] mx-auto bg-white shadow-lg border border-border">
-      <div className="p-12 space-y-5">
-        {/* Header */}
-        <div className="text-center border-b-2 border-black pb-4">
-          <h1 className="text-3xl font-bold uppercase tracking-wide mb-3">
-            Pavushetty Yashwanth Krishna
-          </h1>
-          <div className="flex items-center justify-center gap-4 text-sm flex-wrap">
-            <a href="mailto:pyashwanthkrishna@gmail.com" className="hover:underline flex items-center gap-1">
-              <span>✉</span> pyashwanthkrishna@gmail.com
-            </a>
-            <a href="https://www.linkedin.com/in/pyashwanthkrishna/" className="hover:underline flex items-center gap-1">
-              <span>in</span> linkedin.com/in/pyashwanthkrishna
-            </a>
-            <a href="https://github.com/yashwanth-3000" className="hover:underline flex items-center gap-1">
-              <span>⚙</span> github.com/yashwanth-3000
-            </a>
-          </div>
-        </div>
-
-        {/* Education Section */}
-        <div>
-          <h2 className="text-lg font-bold uppercase tracking-wide mb-3 pb-1 border-b border-black">
-            Education
-          </h2>
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-bold">KAKATIYA INSTITUTE OF TECHNOLOGY & SCIENCE WARANGAL</h3>
-              <p className="text-sm italic">Bachelor of Technology in Computer Science and Engineering</p>
-            </div>
-            <div className="text-right text-sm">
-              <p className="italic">Expected May 2026</p>
-              <p className="italic">Warangal, Telangana, India</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Experience Section */}
-        <div>
-          <h2 className="text-lg font-bold uppercase tracking-wide mb-3 pb-1 border-b border-black">
-            Experience
-          </h2>
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <h3 className="font-bold">Restack (Earn By Building Program)</h3>
-              <p className="text-sm italic">Open Source Contributor</p>
-            </div>
-            <div className="text-right text-sm">
-              <p className="italic">Dec 2024</p>
-              <p className="italic">Remote / Berlin, Germany</p>
-            </div>
-          </div>
-          <ul className="list-disc list-inside space-y-1 text-sm ml-4">
-            <li>Contributed to the Restack AI Python SDK Examples repository by integrating ElevenLabs&apos; Text-to-Speech and Voice Isolation functionalities, simplifying user onboarding and providing clear workflow examples.</li>
-            <li>Enhanced the repository&apos;s value through advanced integrations that demonstrate real-world applications of the Restack SDK, benefiting developers of all skill levels.</li>
-            <li>Awarded $500 in recognition of high-quality contributions that align with Restack&apos;s mission to empower developers in building AI-powered applications.</li>
-          </ul>
-        </div>
-
-        {/* Projects Section */}
-        <div>
-          <h2 className="text-lg font-bold uppercase tracking-wide mb-3 pb-1 border-b border-black">
-            Projects
-          </h2>
-          <div className="space-y-3">
-            {/* Text2Story */}
-            <div>
-              <h3 className="font-bold mb-1">
-                Text2Story <span className="text-sm font-normal italic">| AI, Animation, Voice Synthesis</span>
-              </h3>
-              <ul className="list-disc list-inside space-y-1 text-sm ml-4">
-                <li>Developed an AI-driven platform that transforms textbook lessons into interactive, animated videos, enhancing children&apos;s education.</li>
-                <li>Enabled parents to add personalized voiceovers, making learning more engaging and tailored to individual needs.</li>
-                <li>Bridges traditional education with storytelling, improving retention and making concepts more accessible.</li>
-              </ul>
-            </div>
-
-            {/* Content Hub */}
-            <div>
-              <h3 className="font-bold mb-1">
-                Content Hub <span className="text-sm font-normal italic">| AI, Social Media Automation</span>
-              </h3>
-              <ul className="list-disc list-inside space-y-1 text-sm ml-4">
-                <li>Developed an AI-powered cross-platform content generation with IBM&apos;s Granite AI models and APIs to deliver personalized, SEO-optimized posts that capture each user&apos;s unique voice.</li>
-                <li>Implemented a real-time ingestion pipeline from Twitter, LinkedIn, and Instagram to transform raw interactions into compelling narratives in seconds.</li>
-                <li>Built an interactive analytics dashboard that provides actionable insights and performance metrics to refine digital communication strategies.</li>
-                <li>Winner of the IBM Granite AI Challenge, securing the first prize among 1900 participants worldwide with a $5,000 USD reward.</li>
-              </ul>
-            </div>
-
-            {/* DevDocs */}
-            <div>
-              <h3 className="font-bold mb-1">
-                DevDocs <span className="text-sm font-normal italic">| AI-Powered Search, Workflow Automation</span>
-              </h3>
-              <ul className="list-disc list-inside space-y-1 text-sm ml-4">
-                <li>Designed an AI-powered tool that streamlines developer workflows by providing real-time, accurate answers from company documentation.</li>
-                <li>Utilized the Modus framework and Llama 3.1 to eliminate manual browsing through extensive documentation.</li>
-                <li>Enabled AI-powered search, real-time results, and custom data integration, improving productivity and reducing frustration.</li>
-                <li>Implemented Neo4j for knowledge graph storage and retrieval, leveraging RAG search for efficient query processing.</li>
-                <li>Winner of the Hypermode Knowledge Graph + AI Challenge, securing the first prize among 553 teams worldwide with a $3,000 USD reward.</li>
-              </ul>
-            </div>
-
-            {/* NASA Project */}
-            <div>
-              <h3 className="font-bold mb-1">
-                AI-Powered Space Exploration <span className="text-sm font-normal italic">| NASA Space Apps Challenge</span>
-              </h3>
-              <ul className="list-disc list-inside space-y-1 text-sm ml-4">
-                <li>Developed an AI-powered platform inspired by the James Webb Space Telescope to create personalized space exploration videos.</li>
-                <li>Integrated real telescope data with AI-generated visuals and multilingual narrations for a more immersive experience.</li>
-                <li>Recognized as a Global Nominee and winner of the People&apos;s Choice Award in the NASA Space Apps Challenge.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Skills Section */}
-        <div>
-          <h2 className="text-lg font-bold uppercase tracking-wide mb-3 pb-1 border-b border-black">
-            Technical Skills
-          </h2>
-          <div className="text-sm space-y-2">
-            <div>
-              <span className="font-bold">AI Agent Development:</span> CrewAI (Multi-Agent Systems), LangGraph (Stateful Workflows), LangChain (LLM Orchestration), Autonomous Agent Architectures, Agent Memory Management, Task Delegation Frameworks
-            </div>
-            <div>
-              <span className="font-bold">Vector and Graph Databases:</span> Neo4j (Knowledge Graphs), Supabase (Vector Search), Pinecone (Vector Storage), Graph-Based RAG Architectures, Semantic Search Systems
-            </div>
-          </div>
-        </div>
-
-        {/* Preview Note */}
-        <div className="mt-8 pt-4 border-t border-gray-300">
-          <p className="text-xs text-center text-muted-foreground">
-            This is a preview. Click &ldquo;Compile PDF&rdquo; to generate the final document.
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
-

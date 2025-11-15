@@ -20,31 +20,16 @@ const Logo = ({ className }: { className?: string }) => {
                 viewBox="0 0 32 32"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-8 w-8">
-                <rect width="32" height="32" rx="8" fill="url(#logo-gradient)" />
+                className="h-7 w-7">
+                <rect width="32" height="32" rx="8" fill="#1a1a1a" />
                 <path
                     d="M8 12h16M8 16h16M8 20h12"
                     stroke="white"
                     strokeWidth="2"
                     strokeLinecap="round"
                 />
-                <defs>
-                    <linearGradient
-                        id="logo-gradient"
-                        x1="16"
-                        y1="0"
-                        x2="16"
-                        y2="32"
-                        gradientUnits="userSpaceOnUse">
-                        <stop stopColor="#9B99FE" />
-                        <stop
-                            offset="1"
-                            stopColor="#2BC8B7"
-                        />
-                    </linearGradient>
-                </defs>
             </svg>
-            <span className="text-xl font-bold bg-gradient-to-r from-[#9B99FE] to-[#2BC8B7] bg-clip-text text-transparent">
+            <span className="text-lg font-bold text-foreground">
                 MakeMyCv
             </span>
         </div>
@@ -67,8 +52,8 @@ export const Navbar = () => {
         <header>
             <nav
                 data-state={menuState && 'active'}
-                className="fixed z-20 w-full px-2 group bg-white/80 backdrop-blur-sm border-b border-border">
-                <div className="mx-auto max-w-7xl px-6">
+                className="fixed z-20 w-full px-2 group">
+                <div className={cn('mx-auto mt-2 max-w-6xl px-6 transition-all duration-300 lg:px-12', isScrolled && 'bg-background/50 max-w-4xl rounded-2xl border backdrop-blur-lg lg:px-5')}>
                     <div className="relative flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
                         <div className="flex w-full justify-between lg:w-auto">
                             <Link
@@ -101,7 +86,7 @@ export const Navbar = () => {
                             </ul>
                         </div>
 
-                        <div className="bg-background group-data-[state=active]:block lg:group-data-[state=active]:flex mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
+                        <div className="bg-background group-data-[state=active]:block lg:group-data-[state=active]:flex mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent">
                             <div className="lg:hidden">
                                 <ul className="space-y-6 text-base">
                                     {menuItems.map((item, index) => (
@@ -119,14 +104,24 @@ export const Navbar = () => {
                                 <Button
                                     asChild
                                     variant="outline"
-                                    size="sm">
+                                    size="sm"
+                                    className={cn(isScrolled && 'lg:hidden')}>
                                     <Link href="#">
                                         <span>Login</span>
                                     </Link>
                                 </Button>
                                 <Button
                                     asChild
-                                    size="sm">
+                                    size="sm"
+                                    className={cn(isScrolled && 'lg:hidden')}>
+                                    <Link href="#">
+                                        <span>Sign Up</span>
+                                    </Link>
+                                </Button>
+                                <Button
+                                    asChild
+                                    size="sm"
+                                    className={cn(isScrolled ? 'lg:inline-flex' : 'hidden')}>
                                     <Link href="/create-cv">
                                         <span>Create CV</span>
                                     </Link>

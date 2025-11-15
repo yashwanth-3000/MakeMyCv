@@ -1343,6 +1343,93 @@ async def get_twitter_posts(
     return response
 
 
+# LaTeX Compilation Endpoint
+class LatexCompileRequest(BaseModel):
+    latex_code: str = Field(..., description="LaTeX code to compile")
+
+@app.post("/api/compile-latex")
+async def compile_latex(request: LatexCompileRequest):
+    """
+    Compile LaTeX code to PDF
+    """
+    import tempfile
+    import subprocess
+    import shutil
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    
+    # Create a temporary directory
+    temp_dir = tempfile.mkdtemp()
+    
+    try:
+        # Write LaTeX code to file
+        tex_file = Path(temp_dir) / "document.tex"
+        tex_file.write_text(request.latex_code)
+        
+        # Run tectonic (automatically handles multiple passes)
+        # Try to find tectonic in multiple locations
+        tectonic_paths = [
+            "/app/bin/tectonic",
+            "/usr/local/bin/tectonic",
+            "tectonic"  # fallback to PATH
+        ]
+        
+        tectonic_cmd = None
+        for path in tectonic_paths:
+            if shutil.which(path) or os.path.exists(path):
+                tectonic_cmd = path
+                break
+        
+        if not tectonic_cmd:
+            raise FileNotFoundError("tectonic executable not found in any expected location")
+        
+        process = subprocess.run(
+            [tectonic_cmd, str(tex_file)],
+            cwd=temp_dir,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        # Check if PDF was created
+        pdf_file = Path(temp_dir) / "document.pdf"
+        if not pdf_file.exists():
+            # Combine stdout and stderr for better error diagnosis
+            error_log = f"STDOUT:\n{process.stdout[-2000:]}\n\nSTDERR:\n{process.stderr[-2000:]}" if process.stderr else process.stdout[-2000:]
+            raise HTTPException(
+                status_code=500,
+                detail=f"PDF compilation failed. Return code: {process.returncode}\n\n{error_log}"
+            )
+        
+        # Copy PDF to a permanent location temporarily
+        output_pdf = Path(tempfile.gettempdir()) / f"resume_{os.urandom(8).hex()}.pdf"
+        shutil.copy(pdf_file, output_pdf)
+        
+        # Return PDF file
+        return FileResponse(
+            path=str(output_pdf),
+            media_type="application/pdf",
+            filename="resume.pdf",
+            background=None  # This will be handled by cleanup
+        )
+        
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="LaTeX compilation timed out")
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=500,
+            detail="tectonic not found. LaTeX compilation engine not available."
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Compilation error: {str(e)}")
+    finally:
+        # Clean up temporary directory
+        try:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        except:
+            pass
+
+
 if __name__ == "__main__":
     import uvicorn
     import os

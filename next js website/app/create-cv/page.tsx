@@ -4,7 +4,7 @@ import * as React from "react"
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import Link from "next/link"
-import { Check, Download, Loader2, CheckCircle, Github, Linkedin, Twitter, Mail, Globe, ArrowRight, ArrowLeft, Edit2, FileText, Plus, Briefcase, X } from "lucide-react"
+import { Check, Download, Loader2, CheckCircle, Github, Linkedin, Twitter, Mail, Globe, ArrowRight, ArrowLeft, Edit2, FileText, Plus, Briefcase, X, AlertCircle, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,7 +19,6 @@ interface SocialMediaData {
   linkedin: string
   twitter: string
   email: string
-  website: string
 }
 
 interface Repository {
@@ -40,12 +39,140 @@ interface Experience {
   location?: string
 }
 
+interface Template {
+  id: string
+  name: string
+  description: string
+  image: string
+  previewUrl: string
+}
+
 interface CVData extends SocialMediaData {
+  selectedTemplate: string
   selectedRepos: Repository[]
   selectedExperiences: Experience[]
   name: string
   title: string
   summary: string
+}
+
+// Step 0: Template Selection
+function TemplateSelector({ 
+  selectedTemplate,
+  onChange
+}: { 
+  selectedTemplate: string
+  onChange: (templateId: string) => void 
+}) {
+  const templates: Template[] = [
+    {
+      id: "professional",
+      name: "Professional",
+      description: "Clean and modern design perfect for software engineers and tech professionals. Features clear sections for experience, projects, and skills.",
+      image: "/templates/professional.png",
+      previewUrl: "#"
+    },
+    {
+      id: "academic",
+      name: "Academic",
+      description: "Structured layout ideal for researchers and academics. Emphasizes publications, education, and research experience.",
+      image: "/templates/academic.png",
+      previewUrl: "#"
+    },
+    {
+      id: "creative",
+      name: "Creative",
+      description: "Bold and eye-catching design for designers, artists, and creative professionals. Showcases portfolio and creative work.",
+      image: "/templates/creative.png",
+      previewUrl: "#"
+    }
+  ]
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-foreground mb-1">Choose Your Template</h2>
+        <p className="text-sm text-muted-foreground">Select a template that best fits your professional profile</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 items-start">
+        {templates.map((template, index) => (
+          <motion.div
+            key={template.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: index * 0.1, ease: "easeOut" }}
+            className={cn(
+              "border rounded-lg overflow-hidden cursor-pointer transition-all duration-200",
+              selectedTemplate === template.id
+                ? "border-foreground bg-gray-50/30 shadow-md"
+                : "border-border hover:border-gray-300 hover:shadow-sm"
+            )}
+            onClick={() => onChange(template.id)}
+            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {/* Template Preview Image Placeholder */}
+            <div className="aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center relative">
+              <FileText className="h-16 w-16 text-gray-400" />
+              {selectedTemplate === template.id && (
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.3, type: "spring" }}
+                  className="absolute top-2 right-2 bg-foreground text-background rounded-full p-1"
+                >
+                  <Check className="h-4 w-4" />
+                </motion.div>
+              )}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-3">
+                <p className="text-white text-xs font-medium">Preview Available</p>
+              </div>
+            </div>
+
+            {/* Template Info */}
+            <div className="p-4 space-y-3">
+              <div>
+                <h3 className="font-semibold text-foreground mb-1">{template.name}</h3>
+                <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                  {template.description}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    // Preview functionality
+                  }}
+                >
+                  Preview
+                </Button>
+                <Button
+                  size="sm"
+                  className={cn(
+                    "flex-1 text-xs",
+                    selectedTemplate === template.id
+                      ? "bg-foreground text-background"
+                      : "bg-secondary text-foreground hover:bg-foreground hover:text-background"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onChange(template.id)
+                  }}
+                >
+                  {selectedTemplate === template.id ? "Selected" : "Select"}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // Step 1: Social Media Input Form
@@ -65,21 +192,15 @@ function SocialMediaStep({
     }
   }
 
-  const formFields = [
-    { id: "github", label: "GitHub Username", placeholder: "octocat", icon: Github, value: data.github },
-    { id: "linkedin", label: "LinkedIn Profile", placeholder: "linkedin.com/in/username", icon: Linkedin, value: data.linkedin },
-    { id: "twitter", label: "Twitter/X Handle", placeholder: "@username", icon: Twitter, value: data.twitter },
-    { id: "email", label: "Email Address", placeholder: "your.email@example.com", icon: Mail, value: data.email, type: "email" },
-    { id: "website", label: "Personal Website", placeholder: "yourwebsite.com", icon: Globe, value: data.website }
-  ]
+    const formFields = [
+      { id: "github", label: "GitHub Username", placeholder: "octocat", icon: Github, value: data.github, required: true },
+      { id: "linkedin", label: "LinkedIn Profile", placeholder: "linkedin.com/in/username", icon: Linkedin, value: data.linkedin },
+      { id: "twitter", label: "Twitter/X Handle", placeholder: "@username", icon: Twitter, value: data.twitter },
+      { id: "email", label: "Email Address", placeholder: "your.email@example.com", icon: Mail, value: data.email, type: "email" }
+    ]
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-4"
-    >
+    <div className="space-y-4">
       <div>
         <h2 className="text-xl font-bold text-foreground mb-1">Social Media Profiles</h2>
         <p className="text-sm text-muted-foreground">Connect your professional profiles to generate your CV</p>
@@ -93,42 +214,52 @@ function SocialMediaStep({
               key={field.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
+              transition={{ duration: 0.3, delay: index * 0.08, ease: "easeOut" }}
               className="space-y-2"
             >
               <Label htmlFor={field.id} className="text-sm font-medium">
-                {field.label}
+                {field.label} {field.required && <span className="text-red-500">*</span>}
               </Label>
               <div className="relative">
-                <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors" />
                 <Input
                   id={field.id}
                   type={field.type || "text"}
                   placeholder={field.placeholder}
                   value={field.value}
                   onChange={(e) => handleChange(field.id as keyof SocialMediaData, e.target.value)}
-                  className="pl-10 transition-all duration-200 focus:scale-[1.01]"
+                  className="pl-10 transition-all duration-200 focus:shadow-sm"
                 />
               </div>
             </motion.div>
           )
         })}
       </div>
-    </motion.div>
+    </div>
   )
 }
 
 // Step 2: GitHub Repository and LinkedIn Experience Selector
 function RepositoryAndExperienceSelector({ 
   selectedRepos,
-  selectedExperiences,
-  onChange 
+  selectedExperiences, 
+  onChange,
+  githubUsername,
+  linkedinUrl
 }: { 
   selectedRepos: Repository[]
   selectedExperiences: Experience[]
-  onChange: (repos: Repository[], experiences: Experience[]) => void 
+  onChange: (repos: Repository[], experiences: Experience[]) => void
+  githubUsername: string
+  linkedinUrl: string
 }) {
   const [showAddExperience, setShowAddExperience] = useState(false)
+  const [repos, setRepos] = useState<Repository[]>([])
+  const [experiences, setExperiences] = useState<Experience[]>([])
+  const [loadingGithub, setLoadingGithub] = useState(true)
+  const [loadingLinkedin, setLoadingLinkedin] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [linkedinError, setLinkedinError] = useState<string | null>(null)
   const [newExperience, setNewExperience] = useState<Partial<Experience>>({
     title: "",
     company: "",
@@ -137,75 +268,180 @@ function RepositoryAndExperienceSelector({
     location: ""
   })
 
-  const mockRepos: Repository[] = [
-    {
-      id: "1",
-      name: "awesome-project",
-      description: "A full-stack web application built with React and Node.js",
-      language: "TypeScript",
-      stars: 245,
-      url: "https://github.com/user/awesome-project"
-    },
-    {
-      id: "2",
-      name: "machine-learning-toolkit",
-      description: "Collection of ML algorithms and utilities",
-      language: "Python",
-      stars: 189,
-      url: "https://github.com/user/ml-toolkit"
-    },
-    {
-      id: "3",
-      name: "design-system",
-      description: "Comprehensive UI component library",
-      language: "JavaScript",
-      stars: 567,
-      url: "https://github.com/user/design-system"
-    },
-    {
-      id: "4",
-      name: "api-gateway",
-      description: "Microservices API gateway with authentication",
-      language: "Go",
-      stars: 123,
-      url: "https://github.com/user/api-gateway"
-    },
-    {
-      id: "5",
-      name: "mobile-app",
-      description: "Cross-platform mobile application",
-      language: "React Native",
-      stars: 89,
-      url: "https://github.com/user/mobile-app"
-    }
-  ]
+  // Fetch data from API
+  React.useEffect(() => {
+    const fetchData = async () => {
+      console.log('🚀 [FETCH] Starting data fetch...')
+      console.log('📌 [FETCH] GitHub Username:', githubUsername)
+      console.log('📌 [FETCH] LinkedIn URL:', linkedinUrl)
+      
+      try {
+        // Step 1: Fetch GitHub repositories first
+        console.log('📦 [GITHUB] Fetching repositories...')
+        setLoadingGithub(true)
+        setError(null)
+        
+        const githubApiUrl = `https://api.github.com/users/${githubUsername}/repos?sort=updated&per_page=10`
+        console.log('📡 [GITHUB] API URL:', githubApiUrl)
+        
+        const reposResponse = await fetch(githubApiUrl)
+        console.log('📡 [GITHUB] Response status:', reposResponse.status)
+        
+        if (!reposResponse.ok) {
+          throw new Error('Failed to fetch GitHub repositories')
+        }
+        
+        const reposData = await reposResponse.json()
+        console.log('✅ [GITHUB] Fetched repositories count:', reposData.length)
+        console.log('📊 [GITHUB] Repository data:', reposData)
+        
+        const formattedRepos: Repository[] = reposData.map((repo: any) => ({
+          id: repo.id.toString(),
+          name: repo.name,
+          description: repo.description || "No description available",
+          language: repo.language || "N/A",
+          stars: repo.stargazers_count,
+          url: repo.html_url
+        }))
+        
+        console.log('✅ [GITHUB] Formatted repositories:', formattedRepos)
+        setRepos(formattedRepos)
+        setLoadingGithub(false)
+        console.log('✅ [GITHUB] Repositories loaded successfully!')
+        
+        // Step 2: Now fetch LinkedIn profile experiences
+        if (linkedinUrl && linkedinUrl.trim()) {
+          console.log('🔗 [LINKEDIN] Starting LinkedIn fetch...')
+          setLoadingLinkedin(true)
+          setLinkedinError(null)
+          
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+          const linkedinApiUrl = `${apiUrl}/linkedin-profile?max_wait=60`
+          console.log('📡 [LINKEDIN] API URL:', linkedinApiUrl)
+          console.log('📡 [LINKEDIN] Request body:', { user_input: linkedinUrl })
+          
+          try {
+            const linkedinResponse = await fetch(linkedinApiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ user_input: linkedinUrl })
+            })
+            
+            console.log('📡 [LINKEDIN] Response status:', linkedinResponse.status)
+            
+            if (linkedinResponse.ok) {
+              const linkedinData = await linkedinResponse.json()
+              console.log('✅ [LINKEDIN] Raw response data:', linkedinData)
+              
+              // Extract experiences from LinkedIn profile
+              const formattedExperiences: Experience[] = []
+              
+              if (linkedinData.profile && linkedinData.profile.position_groups) {
+                console.log('📊 [LINKEDIN] Position groups found:', linkedinData.profile.position_groups.length)
+                
+                linkedinData.profile.position_groups.forEach((group: any, groupIndex: number) => {
+                  console.log(`📌 [LINKEDIN] Processing group ${groupIndex + 1}:`, group)
+                  
+                  if (group.profile_positions) {
+                    console.log(`📌 [LINKEDIN] Group ${groupIndex + 1} has ${group.profile_positions.length} positions`)
+                    
+                    group.profile_positions.forEach((position: any, posIndex: number) => {
+                      console.log(`📄 [LINKEDIN] Position ${posIndex + 1}:`, position)
+                      
+                      const startDate = position.starts_at ? `${position.starts_at.month || ''}/${position.starts_at.year || ''}` : ''
+                      const endDate = position.ends_at ? `${position.ends_at.month || ''}/${position.ends_at.year || ''}` : 'Present'
+                      const duration = startDate && endDate ? `${startDate} - ${endDate}` : ''
+                      
+                      const experience = {
+                        id: `linkedin-${position.company || 'unknown'}-${position.title || 'position'}`.replace(/\s+/g, '-').toLowerCase(),
+                        title: position.title || "Position",
+                        company: position.company || group.company?.name || "Company",
+                        duration: duration || "Not specified",
+                        location: position.location || "",
+                        description: position.description || ""
+                      }
+                      
+                      console.log('✅ [LINKEDIN] Formatted experience:', experience)
+                      formattedExperiences.push(experience)
+                    })
+                  }
+                })
+                
+                console.log('✅ [LINKEDIN] Total formatted experiences:', formattedExperiences.length)
+              } else {
+                console.log('⚠️ [LINKEDIN] No position_groups found in profile')
+              }
+              
+              if (formattedExperiences.length > 0) {
+                console.log('✅ [LINKEDIN] Setting experiences:', formattedExperiences)
+                setExperiences(formattedExperiences)
+              } else {
+                console.log('⚠️ [LINKEDIN] No experiences found, setting empty array')
+                setExperiences([])
+              }
+            } else {
+              const errorData = await linkedinResponse.json()
+              console.error('❌ [LINKEDIN] API failed:', errorData)
+              setLinkedinError('Failed to fetch LinkedIn data')
+              setExperiences([])
+            }
+          } catch (linkedinError) {
+            console.error('❌ [LINKEDIN] Error:', linkedinError)
+            setLinkedinError(linkedinError instanceof Error ? linkedinError.message : 'LinkedIn fetch failed')
+            setExperiences([])
+          } finally {
+            setLoadingLinkedin(false)
+            console.log('✅ [LINKEDIN] Fetch complete')
+          }
+        } else {
+          console.log('⚠️ [LINKEDIN] No LinkedIn URL provided, skipping')
+          setExperiences([])
+        }
+        
+      } catch (err) {
+        console.error('❌ [FETCH] Error fetching GitHub data:', err)
+        setError(err instanceof Error ? err.message : 'Failed to fetch data')
+        setLoadingGithub(false)
+        
+        // Fallback to mock data on error
+        const fallbackRepos: Repository[] = [
+          {
+            id: "1",
+            name: "awesome-project",
+            description: "A full-stack web application built with React and Node.js",
+            language: "TypeScript",
+            stars: 245,
+            url: "https://github.com/user/awesome-project"
+          },
+          {
+            id: "2",
+            name: "machine-learning-toolkit",
+            description: "Collection of ML algorithms and utilities",
+            language: "Python",
+            stars: 189,
+            url: "https://github.com/user/ml-toolkit"
+          },
+          {
+            id: "3",
+            name: "design-system",
+            description: "Comprehensive UI component library",
+            language: "JavaScript",
+            stars: 567,
+            url: "https://github.com/user/design-system"
+          }
+        ]
 
-  const mockExperiences: Experience[] = [
-    {
-      id: "exp1",
-      title: "Senior Software Engineer",
-      company: "Tech Corp",
-      duration: "2021 - Present",
-      location: "San Francisco, CA",
-      description: "Led development of cloud-based solutions, mentored junior developers, and architected scalable microservices."
-    },
-    {
-      id: "exp2",
-      title: "Software Engineer",
-      company: "StartupXYZ",
-      duration: "2019 - 2021",
-      location: "Remote",
-      description: "Developed full-stack features for SaaS platform, improved performance by 40%, and collaborated with product team."
-    },
-    {
-      id: "exp3",
-      title: "Junior Developer",
-      company: "Digital Agency",
-      duration: "2018 - 2019",
-      location: "New York, NY",
-      description: "Built responsive websites, maintained client projects, and contributed to internal tools development."
+        setRepos(fallbackRepos)
+        setExperiences([])
+      }
     }
-  ]
+
+    if (githubUsername) {
+      fetchData()
+    }
+  }, [githubUsername, linkedinUrl])
 
   const handleToggleRepo = (repo: Repository) => {
     const isSelected = selectedRepos.some(r => r.id === repo.id)
@@ -240,44 +476,91 @@ function RepositoryAndExperienceSelector({
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-6"
-    >
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Repositories Column */}
-        <div className="space-y-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Github className="h-5 w-5 text-foreground" />
-              <h2 className="text-lg font-bold text-foreground">Repositories</h2>
-            </div>
-            <p className="text-xs text-muted-foreground">Choose up to 4 projects</p>
+    <div className="space-y-6">
+      {/* GitHub Loading State */}
+      {loadingGithub && (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-foreground" />
+            <h3 className="text-lg font-semibold mb-2">Loading GitHub Repositories</h3>
+            <p className="text-sm text-muted-foreground">Fetching your repositories from GitHub...</p>
           </div>
+        </div>
+      )}
+      
+      {/* LinkedIn Loading Indicator (shown while repos are visible) */}
+      {!loadingGithub && loadingLinkedin && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            <div>
+              <h3 className="font-semibold text-blue-900 mb-1">Loading LinkedIn Experiences</h3>
+              <p className="text-sm text-blue-700">Fetching work experience from LinkedIn... This may take 10-60 seconds</p>
+            </div>
+          </div>
+        </div>
+      )}
 
-          <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
-            {mockRepos.map((repo, index) => {
+      {/* GitHub Error State */}
+      {error && !loadingGithub && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-yellow-900 mb-1">Could not fetch GitHub data</h3>
+              <p className="text-sm text-yellow-700">Using sample data instead. Error: {error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* LinkedIn Error State */}
+      {linkedinError && !loadingLinkedin && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-yellow-900 mb-1">Could not fetch LinkedIn data</h3>
+              <p className="text-sm text-yellow-700">You can add experiences manually. Error: {linkedinError}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Two Column Layout */}
+      {!loadingGithub && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Repositories Column */}
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Github className="h-5 w-5 text-foreground" />
+                <h2 className="text-lg font-bold text-foreground">Repositories</h2>
+              </div>
+              <p className="text-xs text-muted-foreground">Choose up to 4 projects from @{githubUsername}</p>
+            </div>
+
+            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
+              {repos.map((repo, index) => {
               const isSelected = selectedRepos.some(r => r.id === repo.id)
               const isDisabled = !isSelected && selectedRepos.length >= 4
               return (
                 <motion.div
                   key={repo.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05, ease: "easeOut" }}
                   className={cn(
                     "border rounded-lg p-3 cursor-pointer transition-all duration-200",
                     isSelected 
-                      ? "border-foreground bg-secondary shadow-sm" 
+                      ? "border-foreground bg-gray-50/50 shadow-sm" 
                       : isDisabled
                       ? "border-border opacity-50 cursor-not-allowed"
-                      : "border-border hover:border-foreground/50 hover:shadow-sm"
+                      : "border-border hover:border-gray-300 hover:shadow-sm"
                   )}
                   onClick={() => !isDisabled && handleToggleRepo(repo)}
-                  whileHover={!isDisabled ? { scale: 1.01 } : {}}
+                  whileHover={!isDisabled ? { y: -2, transition: { duration: 0.2 } } : {}}
+                  whileTap={!isDisabled ? { scale: 0.98 } : {}}
                 >
                   <div className="flex items-start gap-2">
                     <Checkbox
@@ -287,15 +570,17 @@ function RepositoryAndExperienceSelector({
                       className="mt-0.5"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center justify-between gap-2">
                         <h3 className="font-semibold text-sm text-foreground truncate">{repo.name}</h3>
-                        <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
-                          {repo.language}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-1">{repo.description}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>⭐ {repo.stars}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap">
+                            {repo.language}
+                          </span>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Star className="h-3 w-3" />
+                            <span>{repo.stars}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -422,22 +707,30 @@ function RepositoryAndExperienceSelector({
           )}
 
           <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
-            {mockExperiences.map((exp, index) => {
+            {experiences.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Briefcase className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No LinkedIn experiences found</p>
+                <p className="text-xs mt-1">Add your experiences manually using the "Add" button above</p>
+              </div>
+            )}
+            {experiences.map((exp, index) => {
               const isSelected = selectedExperiences.some(e => e.id === exp.id)
               return (
                 <motion.div
                   key={exp.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05, ease: "easeOut" }}
                   className={cn(
                     "border rounded-lg p-3 cursor-pointer transition-all duration-200",
                     isSelected 
-                      ? "border-foreground bg-secondary shadow-sm" 
-                      : "border-border hover:border-foreground/50 hover:shadow-sm"
+                      ? "border-foreground bg-gray-50/50 shadow-sm" 
+                      : "border-border hover:border-gray-300 hover:shadow-sm"
                   )}
                   onClick={() => handleToggleExperience(exp)}
-                  whileHover={{ scale: 1.01 }}
+                  whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   <div className="flex items-start gap-2">
                     <Checkbox
@@ -470,13 +763,13 @@ function RepositoryAndExperienceSelector({
           {selectedExperiences.filter(e => e.id.startsWith('custom-')).length > 0 && (
             <div className="mt-3 space-y-2">
               <h3 className="text-xs font-semibold text-foreground">Custom Experiences</h3>
-              {selectedExperiences.filter(e => e.id.startsWith('custom-')).map((exp) => (
+              {selectedExperiences.filter(e => e.id.startsWith('custom-')).map((exp, index) => (
                 <motion.div
                   key={exp.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                  className="border border-foreground bg-secondary rounded-lg p-3"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="border border-gray-300 bg-gray-50/50 rounded-lg p-3"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
@@ -512,7 +805,8 @@ function RepositoryAndExperienceSelector({
           )}
         </div>
       </div>
-    </motion.div>
+      )}
+    </div>
   )
 }
 
@@ -553,12 +847,7 @@ function CVPreview({
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-4"
-    >
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-foreground mb-1">CV Preview</h2>
@@ -630,12 +919,6 @@ function CVPreview({
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Linkedin className="h-4 w-4" />
                   <span>{data.linkedin}</span>
-                </div>
-              )}
-              {data.website && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Globe className="h-4 w-4" />
-                  <span>{data.website}</span>
                 </div>
               )}
             </div>
@@ -752,7 +1035,7 @@ function CVPreview({
           )}
         </Button>
       </motion.div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -761,11 +1044,11 @@ export default function CVGeneratorWizard() {
   const [currentStep, setCurrentStep] = useState(0)
   const [animationDirection, setAnimationDirection] = useState<"forward" | "backward">("forward")
   const [cvData, setCVData] = useState<CVData>({
+    selectedTemplate: "",
     github: "",
     linkedin: "",
     twitter: "",
     email: "",
-    website: "",
     selectedRepos: [],
     selectedExperiences: [],
     name: "",
@@ -774,12 +1057,25 @@ export default function CVGeneratorWizard() {
   })
 
   const steps = [
+    { id: "template", title: "Template", icon: FileText },
     { id: "social", title: "Social Media", icon: Mail },
-    { id: "repos", title: "Content", icon: Briefcase },
-    { id: "preview", title: "Preview", icon: FileText }
+    { id: "content", title: "Content", icon: Briefcase },
+    { id: "preview", title: "Preview", icon: CheckCircle }
   ]
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    // Validate template selection
+    if (currentStep === 0 && !cvData.selectedTemplate) {
+      alert("Please select a template before proceeding")
+      return
+    }
+
+    // Validate GitHub username (required field)
+    if (currentStep === 1 && !cvData.github.trim()) {
+      alert("GitHub Username is required")
+      return
+    }
+
     setAnimationDirection("forward")
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1)
@@ -793,141 +1089,185 @@ export default function CVGeneratorWizard() {
     }
   }
 
-  const pageVariants = {
-    initial: (direction: string) => ({
-      x: direction === "forward" ? "100%" : "-100%",
-      opacity: 0
-    }),
-    in: {
-      x: 0,
-      opacity: 1
-    },
-    out: (direction: string) => ({
-      x: direction === "forward" ? "-100%" : "100%",
-      opacity: 0
-    })
-  }
-
-  const pageTransition = {
-    type: "tween",
-    ease: "anticipate",
-    duration: 0.4
-  }
-
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-gray-50 text-foreground pt-20 pb-8 px-4">
-        <div className="w-full max-w-2xl mx-auto bg-white border border-border rounded-lg shadow-sm overflow-hidden">
-          {/* Progress Bar */}
-          <div className="px-4 pt-4 pb-3 border-b border-border">
-            <div className="flex justify-between items-center mb-3">
-              <h1 className="text-lg font-bold">CV Generator</h1>
-              <span className="text-xs text-muted-foreground">
-                Step {currentStep + 1} of {steps.length}
-              </span>
-            </div>
-            <div className="relative">
-              <div className="overflow-hidden h-1.5 mb-3 text-xs flex rounded-full bg-muted">
-                <div
-                  style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-foreground transition-all duration-500"
-                />
+      <div className="min-h-screen bg-white text-foreground pt-16">
+        <div className="h-[calc(100vh-4rem)] flex flex-col">
+          {/* Header with Progress Stepper */}
+          <div className="border-b border-gray-100 bg-white sticky top-16 z-10 flex-shrink-0">
+            <div className="max-w-5xl mx-auto px-8 py-6">
+              {/* Title and Step Info */}
+              <div className="mb-6">
+                <h1 className="text-3xl font-bold text-foreground mb-2">Create Your CV</h1>
+                <p className="text-sm text-muted-foreground">
+                  Step {currentStep + 1} of {steps.length} • {steps[currentStep].title}
+                </p>
               </div>
-              <div className="flex justify-between">
+
+              {/* Progress Stepper */}
+              <div className="flex items-center justify-center gap-3">
                 {steps.map((step, index) => (
-                  <div key={step.id} className="flex flex-col items-center">
-                    <div
-                      className={cn(
-                        "rounded-full flex items-center justify-center transition-all w-8 h-8 border-2",
-                        index <= currentStep
-                          ? "bg-foreground text-background border-foreground"
-                          : "bg-background text-muted-foreground border-border"
-                      )}
+                  <React.Fragment key={step.id}>
+                    <motion.div 
+                      className="flex items-center gap-3"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
                     >
-                      {index < currentStep ? (
-                        <Check className="w-4 h-4" />
-                      ) : (
-                        <step.icon className="w-4 h-4" />
-                      )}
-                    </div>
-                    <p className="text-xs mt-1.5 font-medium hidden sm:block">
-                      {step.title}
-                    </p>
-                  </div>
+                      <div className="flex items-center gap-3">
+                        <motion.div
+                          className={cn(
+                            "rounded-full flex items-center justify-center transition-all duration-300 w-10 h-10 border-2 shadow-sm",
+                            index <= currentStep
+                              ? "bg-foreground text-background border-foreground shadow-md"
+                              : "bg-white text-muted-foreground border-gray-200"
+                          )}
+                          animate={index === currentStep ? { scale: [1, 1.05, 1] } : {}}
+                          transition={{ duration: 0.5 }}
+                        >
+                          {index < currentStep ? (
+                            <motion.div
+                              initial={{ scale: 0, rotate: -180 }}
+                              animate={{ scale: 1, rotate: 0 }}
+                              transition={{ type: "spring", stiffness: 200 }}
+                            >
+                              <Check className="w-5 h-5" />
+                            </motion.div>
+                          ) : (
+                            <step.icon className="w-5 h-5" />
+                          )}
+                        </motion.div>
+                        <div className="hidden md:block">
+                          <p className={cn(
+                            "text-sm font-medium whitespace-nowrap transition-colors",
+                            index <= currentStep ? "text-foreground" : "text-muted-foreground"
+                          )}>
+                            {step.title}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                    {index < steps.length - 1 && (
+                      <div className="flex-shrink-0 w-16 h-0.5 bg-gray-200 mx-1">
+                        <motion.div
+                          className="h-full bg-foreground"
+                          initial={{ width: 0 }}
+                          animate={{ width: index < currentStep ? "100%" : 0 }}
+                          transition={{ duration: 0.4, ease: "easeInOut" }}
+                        />
+                      </div>
+                    )}
+                  </React.Fragment>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Step Content */}
-          <div className="p-4">
-            <AnimatePresence initial={false} custom={animationDirection} mode="wait">
-              <motion.div
-                key={currentStep}
-                custom={animationDirection}
-                variants={pageVariants}
-                initial="initial"
-                animate="in"
-                exit="out"
-                transition={pageTransition}
-                className="min-h-[350px]"
-              >
-                {currentStep === 0 && (
-                  <SocialMediaStep
-                    data={cvData}
-                    onChange={(socialData) => setCVData({ ...cvData, ...socialData })}
-                  />
-                )}
-                {currentStep === 1 && (
-                  <RepositoryAndExperienceSelector
-                    selectedRepos={cvData.selectedRepos}
-                    selectedExperiences={cvData.selectedExperiences}
-                    onChange={(repos, experiences) => setCVData({ ...cvData, selectedRepos: repos, selectedExperiences: experiences })}
-                  />
-                )}
-                {currentStep === 2 && (
-                  <CVPreview
-                    data={cvData}
-                    onChange={setCVData}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
+          {/* Main Content Area */}
+          <div className="flex-1 overflow-hidden py-6">
+            <div className="max-w-5xl mx-auto h-full overflow-auto px-8">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentStep}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="h-full"
+                >
+                  {currentStep === 0 && (
+                    <TemplateSelector
+                      selectedTemplate={cvData.selectedTemplate}
+                      onChange={(templateId) => setCVData({ ...cvData, selectedTemplate: templateId })}
+                    />
+                  )}
+                  {currentStep === 1 && (
+                    <SocialMediaStep
+                      data={cvData}
+                      onChange={(socialData) => setCVData({ ...cvData, ...socialData })}
+                    />
+                  )}
+                  {currentStep === 2 && (
+                    <RepositoryAndExperienceSelector
+                      selectedRepos={cvData.selectedRepos}
+                      selectedExperiences={cvData.selectedExperiences}
+                      onChange={(repos, experiences) => setCVData({ ...cvData, selectedRepos: repos, selectedExperiences: experiences })}
+                      githubUsername={cvData.github}
+                      linkedinUrl={cvData.linkedin}
+                    />
+                  )}
+                  {currentStep === 3 && (
+                    <CVPreview
+                      data={cvData}
+                      onChange={setCVData}
+                    />
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
 
-            {/* Navigation */}
-            <div className={cn(
-              "mt-6 flex",
-              currentStep === 0 ? "justify-end" : "justify-between"
-            )}>
-              {currentStep > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePrevious}
-                >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Previous
-                </Button>
-              )}
-              {currentStep < steps.length - 1 ? (
-                <Button 
-                  size="sm"
-                  onClick={handleNext}>
-                  Next
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  asChild
-                >
-                  <Link href="/cv-editor">
-                    Edit in LaTeX
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Link>
-                </Button>
-              )}
+          {/* Bottom Navigation */}
+          <div className="py-4 bg-white flex-shrink-0">
+            <div className="max-w-5xl mx-auto px-8 flex justify-between items-center">
+              <AnimatePresence mode="wait">
+                {currentStep > 0 ? (
+                  <motion.div
+                    key="prev-button"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Button
+                      variant="outline"
+                      onClick={handlePrevious}
+                      className="transition-all hover:shadow-sm"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Previous
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <div />
+                )}
+              </AnimatePresence>
+              <AnimatePresence mode="wait">
+                {currentStep < steps.length - 1 ? (
+                  <motion.div
+                    key="next-button"
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Button 
+                      onClick={handleNext}
+                      disabled={currentStep === 0 && !cvData.selectedTemplate}
+                      className="transition-all hover:shadow-sm"
+                    >
+                      Next
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </motion.div>
+                ) : currentStep === steps.length - 1 ? (
+                  <motion.div
+                    key="finish-button"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Button asChild className="transition-all hover:shadow-sm">
+                      <Link href="/create-cv/editor">
+                        Edit in LaTeX
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Link>
+                    </Button>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
             </div>
           </div>
         </div>
