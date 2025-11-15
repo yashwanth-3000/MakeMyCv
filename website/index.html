@@ -265,7 +265,7 @@
         <div class="api-section">
             <h2>1. Health Check</h2>
             <div class="endpoint-info">
-                <strong>GET</strong> <code>http://localhost:8000/health</code>
+                <strong>GET</strong> <code>https://makemycv-api-production.up.railway.app/health</code>
             </div>
             <button onclick="checkHealth()">Check API Health</button>
             <div id="health-response" class="response-container"></div>
@@ -275,11 +275,11 @@
         <div class="api-section">
             <h2>2. Get User Repositories</h2>
             <div class="endpoint-info">
-                <strong>GET</strong> <code>http://localhost:8000/repos/{username}</code>
+                <strong>POST</strong> <code>https://makemycv-api-production.up.railway.app/get-repos</code>
             </div>
             <div class="form-group">
-                <label for="username">GitHub Username:</label>
-                <input type="text" id="username" placeholder="e.g., octocat" value="yashwanth-3000">
+                <label for="profile-url">GitHub Profile URL:</label>
+                <input type="text" id="profile-url" placeholder="e.g., https://github.com/yashwanth-3000" value="https://github.com/yashwanth-3000">
             </div>
             <button onclick="getUserRepos()">Fetch Repositories</button>
             <div id="repos-response" class="response-container"></div>
@@ -289,15 +289,11 @@
         <div class="api-section">
             <h2>3. Analyze Single Repository (Detailed Summary)</h2>
             <div class="endpoint-info">
-                <strong>GET</strong> <code>http://localhost:8000/gitingest/{owner}/{repo}</code>
+                <strong>POST</strong> <code>https://makemycv-api-production.up.railway.app/analyze-repo</code>
             </div>
             <div class="form-group">
-                <label for="repo-owner">Repository Owner:</label>
-                <input type="text" id="repo-owner" placeholder="e.g., octocat" value="yashwanth-3000">
-            </div>
-            <div class="form-group">
-                <label for="repo-name">Repository Name:</label>
-                <input type="text" id="repo-name" placeholder="e.g., Hello-World" value="kisan">
+                <label for="repo-url">Repository URL:</label>
+                <input type="text" id="repo-url" placeholder="e.g., https://github.com/yashwanth-3000/kisan" value="https://github.com/yashwanth-3000/kisan">
             </div>
             <div class="form-group">
                 <div class="checkbox-group">
@@ -313,12 +309,12 @@
         <div class="api-section">
             <h2>4. Batch Repository Analysis</h2>
             <div class="endpoint-info">
-                <strong>POST</strong> <code>http://localhost:8000/gitingest</code>
+                <strong>POST</strong> <code>https://makemycv-api-production.up.railway.app/analyze-repos-batch</code>
             </div>
             <div class="form-group">
-                <label for="batch-repos">Repositories (one per line, format: owner/repo):</label>
-                <textarea id="batch-repos" rows="5" placeholder="e.g.,&#10;octocat/Hello-World&#10;torvalds/linux">yashwanth-3000/kisan
-octocat/Hello-World</textarea>
+                <label for="batch-repos">Repositories (one per line, GitHub URLs or owner/repo format):</label>
+                <textarea id="batch-repos" rows="5" placeholder="e.g.,&#10;https://github.com/yashwanth-3000/kisan&#10;https://github.com/octocat/Hello-World&#10;or&#10;yashwanth-3000/kisan&#10;octocat/Hello-World">https://github.com/yashwanth-3000/kisan
+https://github.com/octocat/Hello-World</textarea>
             </div>
             <div class="form-group">
                 <div class="checkbox-group">
@@ -334,7 +330,7 @@ octocat/Hello-World</textarea>
         <div class="api-section">
             <h2>5. Get LinkedIn Profile Details (LinkedIn Scraping)</h2>
             <div class="endpoint-info">
-                <strong>POST</strong> <code>http://localhost:8000/linkedin-profile</code>
+                <strong>POST</strong> <code>https://makemycv-api-production.up.railway.app/linkedin-profile</code>
             </div>
             <div class="form-group">
                 <label for="profile-input">LinkedIn Profile URL or Username:</label>
@@ -355,7 +351,7 @@ octocat/Hello-World</textarea>
         <div class="api-section">
             <h2>6. Get LinkedIn Posts (LinkedIn Posts Scraping)</h2>
             <div class="endpoint-info">
-                <strong>POST</strong> <code>http://localhost:8000/linkedin-posts</code>
+                <strong>POST</strong> <code>https://makemycv-api-production.up.railway.app/linkedin-posts</code>
             </div>
             <div class="form-group">
                 <label for="posts-input">LinkedIn Profile URL:</label>
@@ -376,7 +372,7 @@ octocat/Hello-World</textarea>
         <div class="api-section">
             <h2>7. Get Twitter Posts (Twitter Posts Scraping)</h2>
             <div class="endpoint-info">
-                <strong>POST</strong> <code>http://localhost:8000/twitter-posts</code>
+                <strong>POST</strong> <code>https://makemycv-api-production.up.railway.app/twitter-posts</code>
             </div>
             <div class="form-group">
                 <label for="twitter-input">Twitter Username (without @):</label>
@@ -396,7 +392,9 @@ octocat/Hello-World</textarea>
     </div>
 
     <script>
-        const API_BASE_URL = 'http://localhost:8000';
+        // Railway Deployment URL
+        const API_BASE_URL = 'https://makemycv-api-production.up.railway.app';
+        // For local development, use: 'http://localhost:8000'
 
         // ============================================
         // CONSOLE LOGGING UTILITIES
@@ -460,16 +458,16 @@ octocat/Hello-World</textarea>
         // ============================================
         async function getUserRepos() {
             const section = 'GET REPOS';
-            const username = document.getElementById('username').value;
+            const profileUrl = document.getElementById('profile-url').value;
             
             logInfo(section, 'Starting repository fetch...');
-            logInfo(section, `Username: ${username}`);
+            logInfo(section, `Profile URL: ${profileUrl}`);
             
             const responseDiv = document.getElementById('repos-response');
             
-            if (!username) {
-                logError(section, 'No username provided');
-                alert('Please enter a username');
+            if (!profileUrl) {
+                logError(section, 'No profile URL provided');
+                alert('Please enter a GitHub profile URL');
                 return;
             }
 
@@ -477,11 +475,18 @@ octocat/Hello-World</textarea>
             responseDiv.classList.add('visible');
 
             const startTime = Date.now();
-            const url = `${API_BASE_URL}/repos/${username}`;
+            const url = `${API_BASE_URL}/get-repos`;
             logInfo(section, `Request URL: ${url}`);
+            logInfo(section, 'Request body:', { url: profileUrl });
             
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: profileUrl })
+                });
                 const endTime = Date.now();
                 const duration = endTime - startTime;
                 
@@ -510,20 +515,18 @@ octocat/Hello-World</textarea>
         // ============================================
         async function analyzeRepo() {
             const section = 'ANALYZE REPO';
-            const owner = document.getElementById('repo-owner').value;
-            const repo = document.getElementById('repo-name').value;
+            const repoUrl = document.getElementById('repo-url').value;
             const includeContent = document.getElementById('include-content').checked;
             
             logInfo(section, 'Starting repository analysis...');
-            logInfo(section, `Owner: ${owner}`);
-            logInfo(section, `Repository: ${repo}`);
+            logInfo(section, `Repository URL: ${repoUrl}`);
             logInfo(section, `Include Content: ${includeContent}`);
             
             const responseDiv = document.getElementById('analyze-response');
             
-            if (!owner || !repo) {
-                logError(section, 'Missing owner or repository name');
-                alert('Please enter both owner and repository name');
+            if (!repoUrl) {
+                logError(section, 'Missing repository URL');
+                alert('Please enter a repository URL');
                 return;
             }
 
@@ -531,11 +534,18 @@ octocat/Hello-World</textarea>
             responseDiv.classList.add('visible');
 
             const startTime = Date.now();
-            const url = `${API_BASE_URL}/gitingest/${owner}/${repo}?include_content=${includeContent}`;
+            const url = `${API_BASE_URL}/analyze-repo?include_content=${includeContent}`;
             logInfo(section, `Request URL: ${url}`);
+            logInfo(section, 'Request body:', { url: repoUrl });
             
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: repoUrl })
+                });
                 const endTime = Date.now();
                 const duration = endTime - startTime;
                 
@@ -614,7 +624,7 @@ octocat/Hello-World</textarea>
             responseDiv.classList.add('visible');
 
             const startTime = Date.now();
-            const url = `${API_BASE_URL}/gitingest?include_content=${includeContent}`;
+            const url = `${API_BASE_URL}/analyze-repos-batch?include_content=${includeContent}`;
             logInfo(section, `Request URL: ${url}`);
             logInfo(section, 'Request body:', { repositories });
             

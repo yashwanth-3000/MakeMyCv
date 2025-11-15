@@ -48,7 +48,38 @@ TWITTER_POSTS_WEBHOOK_URL = os.getenv(
 )
 
 
+# Helper Functions
+def parse_github_url(url: str) -> Dict[str, str]:
+    """Parse GitHub URL to extract username/owner and repo name"""
+    import re
+    
+    # Remove trailing slashes and .git
+    url = url.rstrip('/').replace('.git', '')
+    
+    # Pattern for GitHub URLs
+    # Matches: github.com/username or github.com/owner/repo
+    pattern = r'github\.com/([^/]+)(?:/([^/]+))?'
+    match = re.search(pattern, url)
+    
+    if not match:
+        raise ValueError("Invalid GitHub URL format")
+    
+    username = match.group(1)
+    repo = match.group(2) if match.group(2) else None
+    
+    return {"username": username, "repo": repo}
+
+
 # Pydantic Models
+class GitHubURLRequest(BaseModel):
+    """GitHub URL request model"""
+    url: str = Field(
+        ...,
+        description="GitHub profile or repository URL",
+        example="https://github.com/yashwanth-3000/kisan"
+    )
+
+
 class Repository(BaseModel):
     """GitHub repository data model"""
     name: str
@@ -371,9 +402,11 @@ async def fetch_gitingest(
         use_token = token or DEFAULT_GITHUB_TOKEN or None
         
         # Call GitIngest to get all data
+        print(f"📦 Starting GitIngest for: {github_url}")
         loop = asyncio.get_event_loop()
         ingest_func = partial(ingest, github_url, token=use_token if use_token else None)
         summary, tree, content = await loop.run_in_executor(None, ingest_func)
+        print(f"✅ GitIngest completed for: {repo_full_name}")
         
         if include_content:
             # Return full code content (large, high tokens)
@@ -391,6 +424,9 @@ async def fetch_gitingest(
             "error": None
         }
     except Exception as e:
+        print(f"❌ GitIngest error for {repo_full_name}: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {
             "repository": repo_full_name,
             "success": False,
@@ -743,8 +779,9 @@ async def root():
         "version": "1.0.0",
         "description": "API for GitHub repository analysis, LinkedIn & Twitter data scraping",
         "endpoints": {
-            "GET /repos/{username}": "Get all GitHub repositories for a user",
-            "POST /gitingest": "Get GitIngest extracts for selected repositories",
+            "POST /get-repos": "Get GitHub repositories by profile URL",
+            "POST /analyze-repo": "Analyze single repository by URL",
+            "POST /analyze-repos-batch": "Batch analyze multiple repositories",
             "POST /linkedin-profile": {
                 "description": "Get LinkedIn profile details (scrapes LinkedIn profile data)",
                 "input": "Requires full LinkedIn profile URL",
@@ -786,10 +823,10 @@ async def health_check():
         "version": "1.0.0",
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "endpoints": {
-            "total": 7,
-            "available": ["GET /", "GET /health", "GET /repos/{username}", 
-                         "POST /gitingest", "GET /gitingest/{owner}/{repo}",
-                         "POST /linkedin-profile", "POST /linkedin-posts", "POST /twitter-posts"]
+            "total": 8,
+            "available": ["GET /", "GET /health", "POST /get-repos", "POST /analyze-repo",
+                         "POST /analyze-repos-batch", "POST /linkedin-profile", "POST /linkedin-posts", 
+                         "POST /twitter-posts"]
         },
         "configuration": {
             "github_token": "configured" if DEFAULT_GITHUB_TOKEN else "not_configured",
@@ -813,19 +850,19 @@ async def health_check():
     }
 
 
-@app.get("/repos/{username}", response_model=List[Repository])
-async def get_user_repositories(
-    username: str,
+@app.post("/get-repos", response_model=List[Repository])
+async def get_repos_by_url(
+    request: GitHubURLRequest,
     repo_type: str = "all",
     sort: str = "updated",
     per_page: int = 100,
     authorization: Optional[str] = Header(None)
 ):
     """
-    Get all repositories for a GitHub user.
+    Get all repositories for a GitHub user by profile URL.
     
     Parameters:
-    - **username**: GitHub username
+    - **url**: GitHub profile URL (e.g., https://github.com/username)
     - **repo_type**: Type of repositories (all, owner, member) - default: all
     - **sort**: Sort by (created, updated, pushed, full_name) - default: updated
     - **per_page**: Results per page (max 100) - default: 100
@@ -833,8 +870,19 @@ async def get_user_repositories(
     
     Returns:
     - List of repositories with detailed information
+    
+    Example request body:
+    ```json
+    {
+        "url": "https://github.com/yashwanth-3000"
+    }
+    ```
     """
     try:
+        # Parse GitHub URL to extract username
+        parsed = parse_github_url(request.url)
+        username = parsed["username"]
+        
         # Extract token from authorization header if provided
         token = None
         if authorization and authorization.startswith("token "):
@@ -846,7 +894,6 @@ async def get_user_repositories(
         transformed_repos = []
         for repo in repos:
             try:
-                # Create repository with proper field mapping
                 repo_data = {
                     "name": repo.get("name"),
                     "full_name": repo.get("full_name"),
@@ -860,23 +907,21 @@ async def get_user_repositories(
                 }
                 transformed_repos.append(Repository(**repo_data))
             except Exception as e:
-                # Log the error but continue with other repos
                 print(f"Error parsing repo {repo.get('name', 'unknown')}: {str(e)}")
                 continue
         
         return transformed_repos
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error in get_user_repositories: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch repositories: {str(e)}"
-        )
+        print(f"Error in get_repos_by_url: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch repositories: {str(e)}")
 
 
-@app.post("/gitingest", response_model=GitIngestBatchResponse)
-async def get_gitingest_extracts(
+@app.post("/analyze-repos-batch", response_model=GitIngestBatchResponse)
+async def analyze_repos_batch(
     request: RepoSelectRequest,
     include_content: bool = False,
     authorization: Optional[str] = Header(None)
@@ -885,7 +930,7 @@ async def get_gitingest_extracts(
     Get GitIngest extracts for selected repositories.
     
     Parameters:
-    - **repositories**: List of repository names in format "owner/repo"
+    - **repositories**: List of GitHub repository URLs or "owner/repo" format
     - **include_content**: Set to true to include full code content (default: false - returns detailed summary)
     - **authorization**: Optional GitHub token in header (format: "token YOUR_TOKEN")
     
@@ -896,7 +941,17 @@ async def get_gitingest_extracts(
       - content: **DEFAULT (false)**: Detailed analysis summary (file categories, technologies, insights)
                **WITH include_content=true**: Full codebase with all source code (~100x larger)
     
-    Example request body:
+    Example request body (URLs):
+    ```json
+    {
+        "repositories": [
+            "https://github.com/octocat/Hello-World",
+            "https://github.com/torvalds/linux"
+        ]
+    }
+    ```
+    
+    Or owner/repo format:
     ```json
     {
         "repositories": ["octocat/Hello-World", "torvalds/linux"]
@@ -920,21 +975,62 @@ async def get_gitingest_extracts(
     
     results = []
     
-    for repo_name in request.repositories:
-        # Validate repo name format
-        if "/" not in repo_name:
+    for repo_input in request.repositories:
+        try:
+            # Check if input is a URL or owner/repo format
+            if repo_input.startswith("http://") or repo_input.startswith("https://"):
+                # Parse URL to extract owner/repo
+                parsed = parse_github_url(repo_input)
+                username = parsed["username"]
+                repo = parsed.get("repo")
+                
+                if not repo:
+                    results.append({
+                        "repository": repo_input,
+                        "success": False,
+                        "summary": None,
+                        "tree": None,
+                        "content": None,
+                        "error": "Invalid repository URL. Must include repository name (e.g., github.com/owner/repo)"
+                    })
+                    continue
+                
+                repo_name = f"{username}/{repo}"
+            else:
+                # Assume owner/repo format
+                if "/" not in repo_input:
+                    results.append({
+                        "repository": repo_input,
+                        "success": False,
+                        "summary": None,
+                        "tree": None,
+                        "content": None,
+                        "error": "Invalid repository format. Use 'owner/repo' or full GitHub URL"
+                    })
+                    continue
+                repo_name = repo_input
+            
+            result = await fetch_gitingest(repo_name, token, include_content)
+            results.append(result)
+            
+        except ValueError as e:
             results.append({
-                "repository": repo_name,
+                "repository": repo_input,
                 "success": False,
                 "summary": None,
                 "tree": None,
                 "content": None,
-                "error": "Invalid repository format. Use 'owner/repo'"
+                "error": f"Failed to parse repository: {str(e)}"
             })
-            continue
-        
-        result = await fetch_gitingest(repo_name, token, include_content)
-        results.append(result)
+        except Exception as e:
+            results.append({
+                "repository": repo_input,
+                "success": False,
+                "summary": None,
+                "tree": None,
+                "content": None,
+                "error": f"Unexpected error: {str(e)}"
+            })
     
     successful = sum(1 for r in results if r["success"])
     failed = len(results) - successful
@@ -947,19 +1043,17 @@ async def get_gitingest_extracts(
     )
 
 
-@app.get("/gitingest/{owner}/{repo}")
-async def get_single_gitingest(
-    owner: str,
-    repo: str,
+@app.post("/analyze-repo")
+async def analyze_repo_by_url(
+    request: GitHubURLRequest,
     include_content: bool = False,
     authorization: Optional[str] = Header(None)
 ):
     """
-    Get GitIngest extract for a single repository.
+    Get GitIngest extract for a repository by URL.
     
     Parameters:
-    - **owner**: Repository owner/organization
-    - **repo**: Repository name
+    - **url**: GitHub repository URL (e.g., https://github.com/owner/repo)
     - **include_content**: Set to true for full code (default: false - returns detailed summary)
     - **authorization**: Optional GitHub token in header (format: "token YOUR_TOKEN")
     
@@ -970,28 +1064,47 @@ async def get_single_gitingest(
       - content: **DEFAULT**: Intelligent summary (file analysis, technologies, categories)
                 **WITH ?include_content=true**: Full source code of all files
     
-    Examples:
-    - Detailed summary (default): GET /gitingest/octocat/Hello-World
-    - Full code content: GET /gitingest/octocat/Hello-World?include_content=true
+    Example request body:
+    ```json
+    {
+        "url": "https://github.com/yashwanth-3000/kisan"
+    }
+    ```
     
     💡 The detailed summary analyzes all files but returns insights instead of code,
        saving ~100x in tokens while providing comprehensive repository understanding.
     """
-    # Extract token from authorization header if provided
-    token = None
-    if authorization and authorization.startswith("token "):
-        token = authorization.split("token ")[1]
-    
-    repo_full_name = f"{owner}/{repo}"
-    result = await fetch_gitingest(repo_full_name, token, include_content)
-    
-    if not result["success"]:
-        raise HTTPException(
-            status_code=500,
-            detail=result["error"]
-        )
-    
-    return result
+    try:
+        # Parse GitHub URL to extract owner and repo
+        parsed = parse_github_url(request.url)
+        username = parsed["username"]
+        repo = parsed.get("repo")
+        
+        if not repo:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid repository URL. Must include repository name (e.g., github.com/owner/repo)"
+            )
+        
+        # Extract token from authorization header if provided
+        token = None
+        if authorization and authorization.startswith("token "):
+            token = authorization.split("token ")[1]
+        
+        repo_full_name = f"{username}/{repo}"
+        result = await fetch_gitingest(repo_full_name, token, include_content)
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in get_gitingest_by_url: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to process repository: {str(e)}")
 
 
 @app.post("/linkedin-profile")
@@ -1232,11 +1345,14 @@ async def get_twitter_posts(
 
 if __name__ == "__main__":
     import uvicorn
+    import os
+    
+    port = int(os.getenv("PORT", 8000))  # Railway provides PORT env var
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
-        reload=True,
+        port=port,
+        reload=False,  # Disabled for GitIngest stability with long-running git operations
         log_level="info"
     )
 
