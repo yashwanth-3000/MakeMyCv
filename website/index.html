@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MakeMyCv API Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .api-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .api-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .response-container {
+            margin-top: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            display: none;
+        }
+
+        .response-container.visible {
+            display: block;
+        }
+
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .response-status {
+            font-weight: 600;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        .status-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-error {
+            background: #f44336;
+            color: white;
+        }
+
+        .response-time {
+            color: #666;
+            font-size: 14px;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .tab-button {
+            background: #f5f5f5;
+            color: #333;
+            border: 2px solid #e0e0e0;
+            padding: 10px 20px;
+            border-radius: 8px 8px 0 0;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 5px;
+        }
+
+        .tab-button:hover {
+            background: #e8e8e8;
+        }
+
+        .tab-button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .tab-content {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 0 8px 8px 8px;
+            border: 2px solid #e0e0e0;
+            margin-top: -2px;
+        }
+
+        .endpoint-info {
+            background: #f0f7ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .endpoint-info code {
+            background: #e3f2fd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 MakeMyCv API Tester</h1>
+            <p class="subtitle">Test GitHub Repository Analysis API Endpoints</p>
+        </header>
+
+        <!-- Health Check -->
+        <div class="api-section">
+            <h2>1. Health Check</h2>
+            <div class="endpoint-info">
+                <strong>GET</strong> <code>http://localhost:8000/health</code>
+            </div>
+            <button onclick="checkHealth()">Check API Health</button>
+            <div id="health-response" class="response-container"></div>
+        </div>
+
+        <!-- Get User Repositories -->
+        <div class="api-section">
+            <h2>2. Get User Repositories</h2>
+            <div class="endpoint-info">
+                <strong>GET</strong> <code>http://localhost:8000/repos/{username}</code>
+            </div>
+            <div class="form-group">
+                <label for="username">GitHub Username:</label>
+                <input type="text" id="username" placeholder="e.g., octocat" value="yashwanth-3000">
+            </div>
+            <button onclick="getUserRepos()">Fetch Repositories</button>
+            <div id="repos-response" class="response-container"></div>
+        </div>
+
+        <!-- Single Repository Analysis -->
+        <div class="api-section">
+            <h2>3. Analyze Single Repository (Detailed Summary)</h2>
+            <div class="endpoint-info">
+                <strong>GET</strong> <code>http://localhost:8000/gitingest/{owner}/{repo}</code>
+            </div>
+            <div class="form-group">
+                <label for="repo-owner">Repository Owner:</label>
+                <input type="text" id="repo-owner" placeholder="e.g., octocat" value="yashwanth-3000">
+            </div>
+            <div class="form-group">
+                <label for="repo-name">Repository Name:</label>
+                <input type="text" id="repo-name" placeholder="e.g., Hello-World" value="kisan">
+            </div>
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="include-content">
+                    <label for="include-content">Include Full Code Content (Large Response)</label>
+                </div>
+            </div>
+            <button onclick="analyzeRepo()">Analyze Repository</button>
+            <div id="analyze-response" class="response-container"></div>
+        </div>
+
+        <!-- Batch Repository Analysis -->
+        <div class="api-section">
+            <h2>4. Batch Repository Analysis</h2>
+            <div class="endpoint-info">
+                <strong>POST</strong> <code>http://localhost:8000/gitingest</code>
+            </div>
+            <div class="form-group">
+                <label for="batch-repos">Repositories (one per line, format: owner/repo):</label>
+                <textarea id="batch-repos" rows="5" placeholder="e.g.,&#10;octocat/Hello-World&#10;torvalds/linux">yashwanth-3000/kisan
+octocat/Hello-World</textarea>
+            </div>
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="batch-include-content">
+                    <label for="batch-include-content">Include Full Code Content (Very Large Response)</label>
+                </div>
+            </div>
+            <button onclick="batchAnalyze()">Analyze Batch</button>
+            <div id="batch-response" class="response-container"></div>
+        </div>
+
+        <!-- Get LinkedIn Profile -->
+        <div class="api-section">
+            <h2>5. Get LinkedIn Profile Details (LinkedIn Scraping)</h2>
+            <div class="endpoint-info">
+                <strong>POST</strong> <code>http://localhost:8000/linkedin-profile</code>
+            </div>
+            <div class="form-group">
+                <label for="profile-input">LinkedIn Profile URL or Username:</label>
+                <input type="text" id="profile-input" placeholder="e.g., https://www.linkedin.com/in/username or username" value="https://www.linkedin.com/in/pyashwanthkrishna">
+            </div>
+            <div class="form-group">
+                <label for="max-wait">Max Wait Time (seconds):</label>
+                <input type="number" id="max-wait" placeholder="60" value="60" min="10" max="120">
+            </div>
+            <p style="color: #666; font-size: 14px; margin-top: -10px;">
+                ⏱️ Note: This may take 10-60 seconds. Uses Agent.ai webhook to scrape LinkedIn profile data.
+            </p>
+            <button onclick="getLinkedInProfile()">Fetch LinkedIn Profile</button>
+            <div id="profile-response" class="response-container"></div>
+        </div>
+
+        <!-- Get LinkedIn Posts -->
+        <div class="api-section">
+            <h2>6. Get LinkedIn Posts (LinkedIn Posts Scraping)</h2>
+            <div class="endpoint-info">
+                <strong>POST</strong> <code>http://localhost:8000/linkedin-posts</code>
+            </div>
+            <div class="form-group">
+                <label for="posts-input">LinkedIn Profile URL or Username:</label>
+                <input type="text" id="posts-input" placeholder="e.g., https://www.linkedin.com/in/username or username" value="https://www.linkedin.com/in/pyashwanthkrishna">
+            </div>
+            <div class="form-group">
+                <label for="posts-max-wait">Max Wait Time (seconds):</label>
+                <input type="number" id="posts-max-wait" placeholder="60" value="60" min="10" max="120">
+            </div>
+            <p style="color: #666; font-size: 14px; margin-top: -10px;">
+                ⏱️ Note: This may take 10-60 seconds. Uses Agent.ai webhook to scrape LinkedIn posts data.
+            </p>
+            <button onclick="getLinkedInPosts()">Fetch LinkedIn Posts</button>
+            <div id="posts-response" class="response-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+
+        // ============================================
+        // CONSOLE LOGGING UTILITIES
+        // ============================================
+        function logInfo(section, message, data = null) {
+            console.log(`🔷 [${section}] ${message}`);
+            if (data) console.log(data);
+        }
+
+        function logSuccess(section, message, data = null) {
+            console.log(`✅ [${section}] ${message}`);
+            if (data) console.log(data);
+        }
+
+        function logError(section, message, error = null) {
+            console.error(`❌ [${section}] ${message}`);
+            if (error) console.error(error);
+        }
+
+        function logTiming(section, duration) {
+            console.log(`⏱️ [${section}] Duration: ${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+        }
+
+        // ============================================
+        // API CALL: HEALTH CHECK
+        // ============================================
+        async function checkHealth() {
+            const section = 'HEALTH CHECK';
+            logInfo(section, 'Starting health check...');
+            
+            const responseDiv = document.getElementById('health-response');
+            responseDiv.innerHTML = '<div class="loading"></div> Checking...';
+            responseDiv.classList.add('visible');
+
+            const startTime = Date.now();
+            logInfo(section, `Request URL: ${API_BASE_URL}/health`);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                logInfo(section, `Response status: ${response.status}`);
+                logTiming(section, duration);
+                
+                const data = await response.json();
+                logSuccess(section, 'Health check completed');
+                logInfo(section, 'Response data:', data);
+                
+                displayResponse(responseDiv, data, response.status, duration);
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                logError(section, 'Health check failed', error);
+                logTiming(section, duration);
+                displayError(responseDiv, error);
+            }
+        }
+
+        // ============================================
+        // API CALL: GET USER REPOSITORIES
+        // ============================================
+        async function getUserRepos() {
+            const section = 'GET REPOS';
+            const username = document.getElementById('username').value;
+            
+            logInfo(section, 'Starting repository fetch...');
+            logInfo(section, `Username: ${username}`);
+            
+            const responseDiv = document.getElementById('repos-response');
+            
+            if (!username) {
+                logError(section, 'No username provided');
+                alert('Please enter a username');
+                return;
+            }
+
+            responseDiv.innerHTML = '<div class="loading"></div> Fetching repositories...';
+            responseDiv.classList.add('visible');
+
+            const startTime = Date.now();
+            const url = `${API_BASE_URL}/repos/${username}`;
+            logInfo(section, `Request URL: ${url}`);
+            
+            try {
+                const response = await fetch(url);
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                logInfo(section, `Response status: ${response.status}`);
+                logTiming(section, duration);
+                
+                const data = await response.json();
+                const repoCount = Array.isArray(data) ? data.length : 'N/A';
+                
+                logSuccess(section, `Fetched ${repoCount} repositories`);
+                logInfo(section, 'Response data:', data);
+                
+                displayResponse(responseDiv, data, response.status, duration, {
+                    'Total Repos': repoCount
+                });
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                logError(section, 'Failed to fetch repositories', error);
+                logTiming(section, duration);
+                displayError(responseDiv, error);
+            }
+        }
+
+        // ============================================
+        // API CALL: ANALYZE SINGLE REPOSITORY
+        // ============================================
+        async function analyzeRepo() {
+            const section = 'ANALYZE REPO';
+            const owner = document.getElementById('repo-owner').value;
+            const repo = document.getElementById('repo-name').value;
+            const includeContent = document.getElementById('include-content').checked;
+            
+            logInfo(section, 'Starting repository analysis...');
+            logInfo(section, `Owner: ${owner}`);
+            logInfo(section, `Repository: ${repo}`);
+            logInfo(section, `Include Content: ${includeContent}`);
+            
+            const responseDiv = document.getElementById('analyze-response');
+            
+            if (!owner || !repo) {
+                logError(section, 'Missing owner or repository name');
+                alert('Please enter both owner and repository name');
+                return;
+            }
+
+            responseDiv.innerHTML = '<div class="loading"></div> Analyzing repository (this may take a few seconds)...';
+            responseDiv.classList.add('visible');
+
+            const startTime = Date.now();
+            const url = `${API_BASE_URL}/gitingest/${owner}/${repo}?include_content=${includeContent}`;
+            logInfo(section, `Request URL: ${url}`);
+            
+            try {
+                const response = await fetch(url);
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                logInfo(section, `Response status: ${response.status}`);
+                logTiming(section, duration);
+                
+                const data = await response.json();
+                const responseSize = JSON.stringify(data).length;
+                
+                logSuccess(section, 'Repository analysis completed');
+                logInfo(section, `Response size: ${formatBytes(responseSize)}`);
+                logInfo(section, `Success: ${data.success}`);
+                
+                if (data.content) {
+                    const contentSize = data.content.length;
+                    logInfo(section, `Content size: ${formatBytes(contentSize)}`);
+                    logInfo(section, `Content preview (first 200 chars): ${data.content.substring(0, 200)}...`);
+                }
+                
+                if (data.summary) {
+                    logInfo(section, 'Summary:', data.summary);
+                }
+                
+                if (data.tree) {
+                    logInfo(section, `Tree structure (${data.tree.split('\n').length} lines)`);
+                }
+                
+                const stats = {
+                    'Response Time': `${(duration / 1000).toFixed(2)}s`,
+                    'Response Size': formatBytes(responseSize),
+                    'Success': data.success ? '✅' : '❌'
+                };
+                
+                if (data.content) {
+                    stats['Content Size'] = formatBytes(data.content.length);
+                    stats['Content Lines'] = data.content.split('\n').length;
+                }
+                
+                logInfo(section, 'Full response data:', data);
+                displayEnhancedResponse(responseDiv, data, response.status, duration, stats);
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                logError(section, 'Repository analysis failed', error);
+                logTiming(section, duration);
+                displayError(responseDiv, error);
+            }
+        }
+
+        // ============================================
+        // API CALL: BATCH ANALYZE
+        // ============================================
+        async function batchAnalyze() {
+            const section = 'BATCH ANALYZE';
+            const reposText = document.getElementById('batch-repos').value;
+            const includeContent = document.getElementById('batch-include-content').checked;
+            
+            logInfo(section, 'Starting batch analysis...');
+            logInfo(section, `Include Content: ${includeContent}`);
+            
+            const responseDiv = document.getElementById('batch-response');
+            
+            const repositories = reposText.split('\n')
+                .map(r => r.trim())
+                .filter(r => r.length > 0);
+            
+            logInfo(section, `Repositories to analyze: ${repositories.length}`);
+            logInfo(section, 'Repository list:', repositories);
+            
+            if (repositories.length === 0) {
+                logError(section, 'No repositories provided');
+                alert('Please enter at least one repository');
+                return;
+            }
+
+            responseDiv.innerHTML = `<div class="loading"></div> Analyzing ${repositories.length} repositories (this may take a while)...`;
+            responseDiv.classList.add('visible');
+
+            const startTime = Date.now();
+            const url = `${API_BASE_URL}/gitingest?include_content=${includeContent}`;
+            logInfo(section, `Request URL: ${url}`);
+            logInfo(section, 'Request body:', { repositories });
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ repositories })
+                });
+                
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                logInfo(section, `Response status: ${response.status}`);
+                logTiming(section, duration);
+                
+                const data = await response.json();
+                const responseSize = JSON.stringify(data).length;
+                
+                logSuccess(section, 'Batch analysis completed');
+                logInfo(section, `Response size: ${formatBytes(responseSize)}`);
+                
+                const stats = {
+                    'Total Repos': repositories.length,
+                    'Response Time': `${(duration / 1000).toFixed(2)}s`,
+                    'Response Size': formatBytes(responseSize)
+                };
+                
+                logInfo(section, 'Full response data:', data);
+                displayResponse(responseDiv, data, response.status, duration, stats);
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                logError(section, 'Batch analysis failed', error);
+                logTiming(section, duration);
+                displayError(responseDiv, error);
+            }
+        }
+
+        // ============================================
+        // API CALL: GET LINKEDIN PROFILE (LinkedIn Scraping)
+        // ============================================
+        async function getLinkedInProfile() {
+            const section = 'LINKEDIN PROFILE';
+            const userInput = document.getElementById('profile-input').value;
+            const maxWait = parseInt(document.getElementById('max-wait').value) || 60;
+            
+            logInfo(section, 'Starting LinkedIn profile scraping...');
+            logInfo(section, `LinkedIn Profile Input: ${userInput}`);
+            logInfo(section, `Max Wait: ${maxWait} seconds`);
+            logInfo(section, 'Using Agent.ai webhook for LinkedIn profile scraping');
+            
+            const responseDiv = document.getElementById('profile-response');
+            
+            if (!userInput) {
+                logError(section, 'No user input provided');
+                alert('Please enter a LinkedIn profile URL or username');
+                return;
+            }
+
+            responseDiv.innerHTML = '<div class="loading"></div> Fetching LinkedIn profile data... (this may take 10-60 seconds)';
+            responseDiv.classList.add('visible');
+
+            const startTime = Date.now();
+            const url = `${API_BASE_URL}/linkedin-profile?max_wait=${maxWait}`;
+            logInfo(section, `Request URL: ${url}`);
+            logInfo(section, 'Request body:', { user_input: userInput });
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user_input: userInput })
+                });
+                
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                logInfo(section, `Response status: ${response.status}`);
+                logTiming(section, duration);
+                
+                const data = await response.json();
+                const responseSize = JSON.stringify(data).length;
+                
+                if (response.status === 200) {
+                    logSuccess(section, 'LinkedIn profile scraping completed successfully! ✅');
+                    logInfo(section, `Response size: ${formatBytes(responseSize)}`);
+                    logInfo(section, 'LinkedIn profile data successfully scraped via Agent.ai webhook');
+                    
+                    // Extract some key LinkedIn profile details for stats
+                    const profile = data.profile;
+                    const stats = {
+                        'Response Time': `${(duration / 1000).toFixed(2)}s`,
+                        'Response Size': formatBytes(responseSize),
+                        'Agent Run ID': data.run_id || 'N/A',
+                        'Data Source': 'LinkedIn Profile (Agent.ai)'
+                    };
+                    
+                    if (profile) {
+                        if (profile.first_name && profile.last_name) {
+                            stats['Name'] = `${profile.first_name} ${profile.last_name}`;
+                        }
+                        if (profile.sub_title) {
+                            stats['Title'] = profile.sub_title;
+                        }
+                        if (profile.location && profile.location.default) {
+                            stats['Location'] = profile.location.default;
+                        }
+                        if (profile.industry) {
+                            stats['Industry'] = profile.industry;
+                        }
+                        if (profile.position_groups) {
+                            stats['Work Experience'] = `${profile.position_groups.length} companies`;
+                        }
+                        if (profile.education) {
+                            stats['Education'] = `${profile.education.length} schools`;
+                        }
+                        if (profile.skills) {
+                            stats['Skills'] = `${profile.skills.length} listed`;
+                        }
+                        if (profile.certifications) {
+                            stats['Certifications'] = `${profile.certifications.length} earned`;
+                        }
+                        if (profile.projects) {
+                            stats['Projects'] = `${profile.projects.length} listed`;
+                        }
+                    }
+                    
+                    logInfo(section, 'Full LinkedIn profile data:', data);
+                    displayResponse(responseDiv, data, response.status, duration, stats);
+                } else {
+                    logError(section, `LinkedIn profile scraping failed with status ${response.status}`);
+                    logInfo(section, 'Error response:', data);
+                    displayResponse(responseDiv, data, response.status, duration);
+                }
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                logError(section, 'LinkedIn profile scraping failed', error);
+                logTiming(section, duration);
+                displayError(responseDiv, error);
+            }
+        }
+
+        // ============================================
+        // API CALL: GET LINKEDIN POSTS (LinkedIn Posts Scraping)
+        // ============================================
+        async function getLinkedInPosts() {
+            const section = 'LINKEDIN POSTS';
+            const userInput = document.getElementById('posts-input').value;
+            const maxWait = parseInt(document.getElementById('posts-max-wait').value) || 60;
+            
+            logInfo(section, 'Starting LinkedIn posts scraping...');
+            logInfo(section, `LinkedIn Profile Input: ${userInput}`);
+            logInfo(section, `Max Wait: ${maxWait} seconds`);
+            logInfo(section, 'Using Agent.ai webhook for LinkedIn posts scraping');
+            
+            const responseDiv = document.getElementById('posts-response');
+            
+            if (!userInput) {
+                logError(section, 'No user input provided');
+                alert('Please enter a LinkedIn profile URL or username');
+                return;
+            }
+
+            responseDiv.innerHTML = '<div class="loading"></div> Fetching LinkedIn posts data... (this may take 10-60 seconds)';
+            responseDiv.classList.add('visible');
+
+            const startTime = Date.now();
+            const url = `${API_BASE_URL}/linkedin-posts?max_wait=${maxWait}`;
+            logInfo(section, `Request URL: ${url}`);
+            logInfo(section, 'Request body:', { user_input: userInput });
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user_input: userInput })
+                });
+                
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                
+                logInfo(section, `Response status: ${response.status}`);
+                logTiming(section, duration);
+                
+                const data = await response.json();
+                const responseSize = JSON.stringify(data).length;
+                
+                if (response.status === 200) {
+                    logSuccess(section, 'LinkedIn posts scraping completed successfully! ✅');
+                    logInfo(section, `Response size: ${formatBytes(responseSize)}`);
+                    logInfo(section, 'LinkedIn posts data successfully scraped via Agent.ai webhook');
+                    
+                    // Extract LinkedIn posts stats
+                    const posts = data.posts;
+                    const stats = {
+                        'Response Time': `${(duration / 1000).toFixed(2)}s`,
+                        'Response Size': formatBytes(responseSize),
+                        'Agent Run ID': data.run_id || 'N/A',
+                        'Data Source': 'LinkedIn Posts (Agent.ai)'
+                    };
+                    
+                    // Try to extract post count from the nested structure
+                    if (posts && typeof posts === 'object') {
+                        const profileKeys = Object.keys(posts);
+                        if (profileKeys.length > 0) {
+                            const profileData = posts[profileKeys[0]];
+                            if (profileData && profileData.posts) {
+                                stats['Total Posts'] = profileData.posts.length;
+                                stats['Profile'] = profileKeys[0];
+                                
+                                // Calculate engagement stats
+                                let totalLikes = 0;
+                                let totalComments = 0;
+                                let totalShares = 0;
+                                
+                                profileData.posts.forEach(post => {
+                                    totalLikes += post.num_reactions || 0;
+                                    totalComments += post.num_comments || 0;
+                                    totalShares += post.num_shares || 0;
+                                });
+                                
+                                stats['Total Reactions'] = totalLikes;
+                                stats['Total Comments'] = totalComments;
+                                stats['Total Shares'] = totalShares;
+                            }
+                        }
+                    }
+                    
+                    logInfo(section, 'Full LinkedIn posts data:', data);
+                    displayResponse(responseDiv, data, response.status, duration, stats);
+                } else {
+                    logError(section, `LinkedIn posts scraping failed with status ${response.status}`);
+                    logInfo(section, 'Error response:', data);
+                    displayResponse(responseDiv, data, response.status, duration);
+                }
+            } catch (error) {
+                const duration = Date.now() - startTime;
+                logError(section, 'LinkedIn posts scraping failed', error);
+                logTiming(section, duration);
+                displayError(responseDiv, error);
+            }
+        }
+
+        // ============================================
+        // DISPLAY: ENHANCED RESPONSE (for single repo)
+        // ============================================
+        function displayEnhancedResponse(container, data, status, time, stats = null) {
+            logInfo('DISPLAY', 'Rendering enhanced response...');
+            
+            const isSuccess = status >= 200 && status < 300;
+            
+            let html = `
+                <div class="response-header">
+                    <span class="response-status ${isSuccess ? 'status-success' : 'status-error'}">
+                        ${status} ${isSuccess ? 'Success' : 'Error'}
+                    </span>
+                    <span class="response-time">⏱️ ${time}ms</span>
+                </div>
+            `;
+            
+            if (stats) {
+                html += '<div class="stats">';
+                for (const [label, value] of Object.entries(stats)) {
+                    html += `
+                        <div class="stat-box">
+                            <div class="stat-label">${label}</div>
+                            <div class="stat-value">${value}</div>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+            
+            // Create tabbed interface for better organization
+            html += `
+                <div style="margin: 20px 0;">
+                    <button onclick="showTab('summary')" class="tab-button active" id="tab-summary">📊 Summary</button>
+                    <button onclick="showTab('tree')" class="tab-button" id="tab-tree">🌳 Tree</button>
+                    <button onclick="showTab('content')" class="tab-button" id="tab-content">📄 Content</button>
+                    <button onclick="showTab('raw')" class="tab-button" id="tab-raw">🔍 Raw JSON</button>
+                </div>
+            `;
+            
+            // Summary Tab
+            html += `<div id="content-summary" class="tab-content active">`;
+            if (data.summary) {
+                html += `<pre style="white-space: pre-wrap;">${escapeHtml(data.summary)}</pre>`;
+            } else {
+                html += `<p style="color: #666;">No summary available</p>`;
+            }
+            html += `</div>`;
+            
+            // Tree Tab
+            html += `<div id="content-tree" class="tab-content" style="display: none;">`;
+            if (data.tree) {
+                html += `<pre style="white-space: pre-wrap;">${escapeHtml(data.tree)}</pre>`;
+            } else {
+                html += `<p style="color: #666;">No tree structure available</p>`;
+            }
+            html += `</div>`;
+            
+            // Content Tab
+            html += `<div id="content-content" class="tab-content" style="display: none;">`;
+            if (data.content) {
+                const lines = data.content.split('\n').length;
+                html += `<p style="color: #667eea; margin-bottom: 10px;">📄 ${lines.toLocaleString()} lines</p>`;
+                html += `<pre style="white-space: pre-wrap; max-height: 600px; overflow-y: auto;">${escapeHtml(data.content)}</pre>`;
+            } else {
+                html += `<p style="color: #666;">No content available (use "Include Full Code Content" option to see code)</p>`;
+            }
+            html += `</div>`;
+            
+            // Raw JSON Tab
+            html += `<div id="content-raw" class="tab-content" style="display: none;">`;
+            html += `<pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+            html += `</div>`;
+            
+            container.innerHTML = html;
+            
+            logSuccess('DISPLAY', 'Enhanced response rendered');
+        }
+
+        // ============================================
+        // DISPLAY: STANDARD RESPONSE
+        // ============================================
+        function displayResponse(container, data, status, time, stats = null) {
+            logInfo('DISPLAY', 'Rendering standard response...');
+            
+            const isSuccess = status >= 200 && status < 300;
+            
+            let html = `
+                <div class="response-header">
+                    <span class="response-status ${isSuccess ? 'status-success' : 'status-error'}">
+                        ${status} ${isSuccess ? 'Success' : 'Error'}
+                    </span>
+                    <span class="response-time">⏱️ ${time}ms</span>
+                </div>
+            `;
+            
+            if (stats) {
+                html += '<div class="stats">';
+                for (const [label, value] of Object.entries(stats)) {
+                    html += `
+                        <div class="stat-box">
+                            <div class="stat-label">${label}</div>
+                            <div class="stat-value">${value}</div>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+            
+            html += `<pre style="max-height: 600px; overflow-y: auto;">${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+            
+            container.innerHTML = html;
+            
+            logSuccess('DISPLAY', 'Standard response rendered');
+        }
+
+        // ============================================
+        // DISPLAY: ERROR
+        // ============================================
+        function displayError(container, error) {
+            logError('DISPLAY', 'Rendering error response');
+            
+            container.innerHTML = `
+                <div class="response-header">
+                    <span class="response-status status-error">Error</span>
+                </div>
+                <pre style="color: #f44336;">${escapeHtml(error.message)}</pre>
+            `;
+        }
+
+        // ============================================
+        // TAB SWITCHING
+        // ============================================
+        function showTab(tabName) {
+            logInfo('UI', `Switching to tab: ${tabName}`);
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            const contentTab = document.getElementById(`content-${tabName}`);
+            if (contentTab) {
+                contentTab.style.display = 'block';
+            }
+            
+            // Add active class to button
+            const button = document.getElementById(`tab-${tabName}`);
+            if (button) {
+                button.classList.add('active');
+            }
+        }
+
+        // ============================================
+        // UTILITIES
+        // ============================================
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        console.log('🚀 MakeMyCv API Tester initialized');
+        console.log(`📡 API Base URL: ${API_BASE_URL}`);
+        console.log('💡 Open console to see detailed logs for all API calls');
+    </script>
+</body>
+</html>
+
+

@@ -36,22 +36,33 @@ app.add_middleware(
 GITHUB_API_BASE = "https://api.github.com"
 DEFAULT_GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 
+# Agent.ai Webhook URLs for various profile scraping services
+LINKEDIN_PROFILE_WEBHOOK_URL = os.getenv(
+    "LINKEDIN_PROFILE_WEBHOOK_URL", 
+    "https://api.agent.ai/v1/agent/26q8jefoy5cu92k8/webhook/2ba10d43"
+)
+LINKEDIN_POSTS_WEBHOOK_URL = os.getenv(
+    "LINKEDIN_POSTS_WEBHOOK_URL",
+    "https://api.agent.ai/v1/agent/p4hl6dhlhp9txrg7/webhook/a55a1a47"
+)
+
 
 # Pydantic Models
 class Repository(BaseModel):
     """Model for repository information"""
     name: str
     full_name: str
-    description: Optional[str]
+    description: Optional[str] = None
     html_url: str
     private: bool
     fork: bool
-    stars: int = Field(alias="stargazers_count")
-    language: Optional[str]
+    stars: int = Field(default=0, alias="stargazers_count")
+    language: Optional[str] = None
     updated_at: str
     
     class Config:
         populate_by_name = True
+        allow_population_by_field_name = True
 
 
 class RepoSelectRequest(BaseModel):
@@ -79,6 +90,24 @@ class GitIngestBatchResponse(BaseModel):
     total_requested: int
     successful: int
     failed: int
+
+
+class ProfileRequest(BaseModel):
+    """Request model for LinkedIn profile fetch"""
+    user_input: str = Field(
+        ...,
+        description="LinkedIn profile URL or identifier",
+        example="https://www.linkedin.com/in/username"
+    )
+
+
+class PostsRequest(BaseModel):
+    """Request model for LinkedIn posts fetch"""
+    user_input: str = Field(
+        ...,
+        description="LinkedIn profile URL or identifier to fetch posts from",
+        example="https://www.linkedin.com/in/pyashwanthkrishna"
+    )
 
 
 # Helper Functions
@@ -362,17 +391,246 @@ async def fetch_gitingest(
         }
 
 
+async def fetch_linkedin_profile(user_input: str, max_wait_seconds: int = 60) -> Dict[str, Any]:
+    """
+    Fetch LinkedIn profile data using Agent.ai webhook for LinkedIn profile scraping
+    
+    This is a two-step process:
+    1. POST to start the LinkedIn profile scraping agent
+    2. Poll GET endpoint for results
+    
+    Args:
+        user_input: LinkedIn profile URL or username
+        max_wait_seconds: Maximum time to wait for profile data
+        
+    Returns:
+        Dict with success status, profile data, and optional error message
+    """
+    import time
+    
+    try:
+        # Step 1: Start the LinkedIn profile scraping agent
+        start_url = f"{LINKEDIN_PROFILE_WEBHOOK_URL}/async"
+        payload = {"user_input": user_input}
+        
+        print(f"Starting agent for profile: {user_input}")
+        response = requests.post(
+            start_url,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        response.raise_for_status()
+        
+        data = response.json()
+        run_id = data.get("run_id")
+        
+        if not run_id:
+            return {
+                "success": False,
+                "data": None,
+                "error": "Failed to start agent: No run_id received"
+            }
+        
+        print(f"LinkedIn profile scraping agent started with run_id: {run_id}")
+        
+        # Step 2: Poll for LinkedIn profile results
+        status_url = f"{LINKEDIN_PROFILE_WEBHOOK_URL}/status/{run_id}"
+        start_time = time.time()
+        poll_interval = 2  # Start with 2 seconds
+        
+        while time.time() - start_time < max_wait_seconds:
+            print(f"Polling status... (elapsed: {int(time.time() - start_time)}s)")
+            
+            try:
+                status_response = requests.get(status_url, timeout=10)
+                
+                # Status 200 means we have results
+                if status_response.status_code == 200:
+                    result_data = status_response.json()
+                    profile_data = result_data.get("response")
+                    
+                    if profile_data:
+                        print("✅ Profile data received!")
+                        return {
+                            "success": True,
+                            "data": profile_data,
+                            "error": None,
+                            "run_id": run_id
+                        }
+                
+                # Status 204 means still processing
+                elif status_response.status_code == 204:
+                    print("⏳ Still processing...")
+                    await asyncio.sleep(poll_interval)
+                    # Gradually increase poll interval up to 5 seconds
+                    poll_interval = min(poll_interval + 0.5, 5)
+                    continue
+                
+                else:
+                    return {
+                        "success": False,
+                        "data": None,
+                        "error": f"Unexpected status code: {status_response.status_code}",
+                        "run_id": run_id
+                    }
+                    
+            except requests.RequestException as e:
+                print(f"Error polling status: {str(e)}")
+                await asyncio.sleep(poll_interval)
+                continue
+        
+        # Timeout
+        return {
+            "success": False,
+            "data": None,
+            "error": f"Timeout after {max_wait_seconds} seconds. Profile may still be processing.",
+            "run_id": run_id
+        }
+        
+    except requests.RequestException as e:
+        return {
+            "success": False,
+            "data": None,
+            "error": f"Failed to start agent: {str(e)}"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "data": None,
+            "error": f"Unexpected error: {str(e)}"
+        }
+
+
+async def fetch_linkedin_posts(user_input: str, max_wait_seconds: int = 60) -> Dict[str, Any]:
+    """
+    Fetch LinkedIn posts data using Agent.ai webhook for LinkedIn posts scraping
+    
+    This is a two-step process:
+    1. POST to start the LinkedIn posts scraping agent
+    2. Poll GET endpoint for results
+    
+    Args:
+        user_input: LinkedIn profile URL or username
+        max_wait_seconds: Maximum time to wait for posts data
+        
+    Returns:
+        Dict with success status, posts data, and optional error message
+    """
+    import time
+    
+    try:
+        # Step 1: Start the LinkedIn posts scraping agent
+        start_url = f"{LINKEDIN_POSTS_WEBHOOK_URL}/async"
+        payload = {"user_input": user_input}
+        
+        print(f"Starting LinkedIn posts scraping agent for: {user_input}")
+        response = requests.post(
+            start_url,
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        response.raise_for_status()
+        
+        data = response.json()
+        run_id = data.get("run_id")
+        
+        if not run_id:
+            return {
+                "success": False,
+                "data": None,
+                "error": "Failed to start agent: No run_id received"
+            }
+        
+        print(f"LinkedIn posts scraping agent started with run_id: {run_id}")
+        
+        # Step 2: Poll for LinkedIn posts results
+        status_url = f"{LINKEDIN_POSTS_WEBHOOK_URL}/status/{run_id}"
+        start_time = time.time()
+        poll_interval = 2  # Start with 2 seconds
+        
+        while time.time() - start_time < max_wait_seconds:
+            print(f"Polling posts status... (elapsed: {int(time.time() - start_time)}s)")
+            
+            try:
+                status_response = requests.get(status_url, timeout=10)
+                
+                # Status 200 means we have results
+                if status_response.status_code == 200:
+                    result_data = status_response.json()
+                    posts_data = result_data.get("response")
+                    
+                    if posts_data:
+                        print("✅ LinkedIn posts data received!")
+                        return {
+                            "success": True,
+                            "data": posts_data,
+                            "error": None,
+                            "run_id": run_id
+                        }
+                
+                # Status 204 means still processing
+                elif status_response.status_code == 204:
+                    print("⏳ Still processing posts...")
+                    await asyncio.sleep(poll_interval)
+                    # Gradually increase poll interval up to 5 seconds
+                    poll_interval = min(poll_interval + 0.5, 5)
+                    continue
+                
+                else:
+                    return {
+                        "success": False,
+                        "data": None,
+                        "error": f"Unexpected status code: {status_response.status_code}",
+                        "run_id": run_id
+                    }
+                    
+            except requests.RequestException as e:
+                print(f"Error polling posts status: {str(e)}")
+                await asyncio.sleep(poll_interval)
+                continue
+        
+        # Timeout
+        return {
+            "success": False,
+            "data": None,
+            "error": f"Timeout after {max_wait_seconds} seconds. Posts may still be processing.",
+            "run_id": run_id
+        }
+        
+    except requests.RequestException as e:
+        return {
+            "success": False,
+            "data": None,
+            "error": f"Failed to start agent: {str(e)}"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "data": None,
+            "error": f"Unexpected error: {str(e)}"
+        }
+
+
 # API Endpoints
 @app.get("/")
 async def root():
     """Root endpoint with API information"""
     return {
-        "message": "Welcome to GitIngest API",
+        "message": "Welcome to MakeMyCv API",
         "version": "1.0.0",
+        "description": "API for GitHub repository analysis and LinkedIn data scraping",
         "endpoints": {
-            "GET /repos/{username}": "Get all repositories for a user",
+            "GET /repos/{username}": "Get all GitHub repositories for a user",
             "POST /gitingest": "Get GitIngest extracts for selected repositories",
+            "POST /linkedin-profile": "Get LinkedIn profile details (scrapes LinkedIn profile data)",
+            "POST /linkedin-posts": "Get LinkedIn posts from a profile (scrapes LinkedIn posts data)",
             "GET /health": "Health check endpoint"
+        },
+        "webhooks": {
+            "linkedin_profile": "Agent.ai webhook for LinkedIn profile scraping",
+            "linkedin_posts": "Agent.ai webhook for LinkedIn posts scraping"
         }
     }
 
@@ -404,23 +662,45 @@ async def get_user_repositories(
     Returns:
     - List of repositories with detailed information
     """
-    # Extract token from authorization header if provided
-    token = None
-    if authorization and authorization.startswith("token "):
-        token = authorization.split("token ")[1]
-    
-    repos = await fetch_github_repos(username, repo_type, sort, per_page, token)
-    
-    # Transform repos to match our model
-    transformed_repos = []
-    for repo in repos:
-        try:
-            transformed_repos.append(Repository(**repo))
-        except Exception as e:
-            # Skip repos that don't match the model
-            continue
-    
-    return transformed_repos
+    try:
+        # Extract token from authorization header if provided
+        token = None
+        if authorization and authorization.startswith("token "):
+            token = authorization.split("token ")[1]
+        
+        repos = await fetch_github_repos(username, repo_type, sort, per_page, token)
+        
+        # Transform repos to match our model
+        transformed_repos = []
+        for repo in repos:
+            try:
+                # Create repository with proper field mapping
+                repo_data = {
+                    "name": repo.get("name"),
+                    "full_name": repo.get("full_name"),
+                    "description": repo.get("description"),
+                    "html_url": repo.get("html_url"),
+                    "private": repo.get("private", False),
+                    "fork": repo.get("fork", False),
+                    "stars": repo.get("stargazers_count", 0),
+                    "language": repo.get("language"),
+                    "updated_at": repo.get("updated_at"),
+                }
+                transformed_repos.append(Repository(**repo_data))
+            except Exception as e:
+                # Log the error but continue with other repos
+                print(f"Error parsing repo {repo.get('name', 'unknown')}: {str(e)}")
+                continue
+        
+        return transformed_repos
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in get_user_repositories: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch repositories: {str(e)}"
+        )
 
 
 @app.post("/gitingest", response_model=GitIngestBatchResponse)
@@ -540,6 +820,142 @@ async def get_single_gitingest(
         )
     
     return result
+
+
+@app.post("/linkedin-profile")
+async def get_linkedin_profile(
+    request: ProfileRequest,
+    max_wait: int = 60
+):
+    """
+    Get LinkedIn profile details using Agent.ai webhook for LinkedIn profile scraping.
+    
+    This endpoint scrapes and fetches comprehensive LinkedIn profile data including:
+    - Basic information (name, title, location, profile picture, background image)
+    - Education history (schools, degrees, dates)
+    - Work experience (companies, positions, descriptions)
+    - Skills and endorsements
+    - Certifications and licenses
+    - Projects and publications
+    - Awards and achievements
+    - Languages and more
+    
+    Parameters:
+    - **user_input**: LinkedIn profile URL or identifier 
+      Examples: 
+        - "https://www.linkedin.com/in/username"
+        - "https://www.linkedin.com/in/pyashwanthkrishna"
+        - "username"
+    - **max_wait**: Maximum seconds to wait for profile data (default: 60, range: 10-120)
+    
+    Returns:
+    - Comprehensive LinkedIn profile data in JSON format with the following structure:
+      - success: Boolean indicating if the operation was successful
+      - profile: Complete LinkedIn profile data object
+      - run_id: Agent.ai run identifier for tracking
+    
+    Example request body:
+    ```json
+    {
+        "user_input": "https://www.linkedin.com/in/pyashwanthkrishna"
+    }
+    ```
+    
+    Note: This is an async operation that may take 10-60 seconds depending on the profile complexity.
+    The endpoint will poll the LinkedIn profile scraping agent until results are ready or timeout is reached.
+    """
+    result = await fetch_linkedin_profile(request.user_input, max_wait)
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=500 if "Timeout" not in result["error"] else 408,
+            detail=result["error"]
+        )
+    
+    return {
+        "success": True,
+        "profile": result["data"],
+        "run_id": result.get("run_id")
+    }
+
+
+@app.post("/linkedin-posts")
+async def get_linkedin_posts(
+    request: PostsRequest,
+    max_wait: int = 60
+):
+    """
+    Get LinkedIn posts from a profile using Agent.ai webhook for LinkedIn posts scraping.
+    
+    This endpoint scrapes and fetches LinkedIn posts data including:
+    - Post content and commentary
+    - Engagement metrics (likes, comments, shares, reactions breakdown)
+    - Post attachments (videos, images, documents)
+    - Author information
+    - Post timestamps and URLs
+    - Reshared activity details
+    
+    Parameters:
+    - **user_input**: LinkedIn profile URL or identifier to fetch posts from
+      Examples: 
+        - "https://www.linkedin.com/in/username"
+        - "https://www.linkedin.com/in/pyashwanthkrishna"
+        - "username" or "pyashwanthkrishna"
+    - **max_wait**: Maximum seconds to wait for posts data (default: 60, range: 10-120)
+    
+    Returns:
+    - LinkedIn posts data in JSON format with the following structure:
+      - success: Boolean indicating if the operation was successful
+      - posts: Dictionary containing posts array with detailed post information
+      - run_id: Agent.ai run identifier for tracking
+    
+    Example request body:
+    ```json
+    {
+        "user_input": "https://www.linkedin.com/in/pyashwanthkrishna"
+    }
+    ```
+    
+    Example response structure:
+    ```json
+    {
+        "success": true,
+        "posts": {
+            "pyashwanthkrishna": {
+                "posts": [
+                    {
+                        "activity_id": "...",
+                        "commentary": "...",
+                        "num_comments": 11,
+                        "num_reactions": 74,
+                        "reaction_breakdown": {"like": 69, "praise": 3},
+                        "li_url": "...",
+                        "attachments": [...]
+                    }
+                ],
+                "post_count": 19
+            }
+        },
+        "run_id": "run-..."
+    }
+    ```
+    
+    Note: This is an async operation that may take 10-60 seconds depending on the number of posts.
+    The endpoint will poll the LinkedIn posts scraping agent until results are ready or timeout is reached.
+    """
+    result = await fetch_linkedin_posts(request.user_input, max_wait)
+    
+    if not result["success"]:
+        raise HTTPException(
+            status_code=500 if "Timeout" not in result["error"] else 408,
+            detail=result["error"]
+        )
+    
+    return {
+        "success": True,
+        "posts": result["data"],
+        "run_id": result.get("run_id")
+    }
 
 
 if __name__ == "__main__":
