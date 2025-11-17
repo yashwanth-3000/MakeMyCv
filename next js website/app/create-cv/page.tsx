@@ -1253,7 +1253,7 @@ function OpusCVGeneration({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <ProjectTabs youtubeVideoId="dQw4w9WgXcQ" progress={progress} />
+            <ProjectTabs youtubeVideoId="7CJ3GqxGJ4Q" progress={progress} />
           </motion.div>
         )}
 
