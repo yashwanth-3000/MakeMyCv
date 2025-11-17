@@ -8,176 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
 
-const defaultLatexTemplate = `%-------------------------
-% Resume in Latex
-% Author : Audric Serador
-% Inspired by: https://github.com/sb2nov/resume
-% License : MIT
-%------------------------
-
-\\documentclass[letterpaper,11pt]{article}
-
-\\usepackage{fontawesome5}
-\\usepackage{latexsym}
-\\usepackage[empty]{fullpage}
-\\usepackage{titlesec}
-\\usepackage{marvosym}
-\\usepackage[usenames,dvipsnames]{color}
-\\usepackage{verbatim}
-\\usepackage{enumitem}
-\\usepackage[hidelinks]{hyperref}
-\\usepackage{fancyhdr}
-\\usepackage[english]{babel}
-\\usepackage{tabularx}
-
-% Custom font
-\\usepackage[default]{lato}
-
-\\pagestyle{fancy}
-\\fancyhf{}
-\\fancyfoot{}
-\\renewcommand{\\headrulewidth}{0pt}
-\\renewcommand{\\footrulewidth}{0pt}
-
-% Adjust margins
-\\addtolength{\\oddsidemargin}{-0.5in}
-\\addtolength{\\evensidemargin}{-0.5in}
-\\addtolength{\\textwidth}{1in}
-\\addtolength{\\topmargin}{-.5in}
-\\addtolength{\\textheight}{1.0in}
-
-\\urlstyle{same}
-\\raggedbottom
-\\raggedright
-\\setlength{\\tabcolsep}{0in}
-
-% Sections formatting
-\\titleformat{\\section}{
-  \\vspace{-4pt}\\scshape\\raggedright\\large
-}{}{0em}{}[\\color{black}\\titlerule\\vspace{-5pt}]
-
-%-------------------------%
-% Custom commands
-\\newcommand{\\resumeItem}[1]{
-  \\item\\small{
-    {#1 \\vspace{-2pt}}
-  }
-}
-
-\\newcommand{\\resumeSubheading}[4]{
-  \\vspace{-2pt}\\item
-    \\begin{tabular*}{0.97\\textwidth}[t]{l@{\\extracolsep{\\fill}}r}
-      \\textbf{#1} & #2 \\\\
-      \\textit{\\small#3} & \\textit{\\small #4} \\\\
-    \\end{tabular*}\\vspace{-7pt}
-}
-
-\\newcommand{\\resumeSubSubheading}[2]{
-    \\item
-    \\begin{tabular*}{0.97\\textwidth}{l@{\\extracolsep{\\fill}}r}
-      \\textit{\\small#1} & \\textit{\\small #2} \\\\
-    \\end{tabular*}\\vspace{-7pt}
-}
-
-\\newcommand{\\resumeProjectHeading}[2]{
-    \\item
-    \\begin{tabular*}{0.97\\textwidth}{l@{\\extracolsep{\\fill}}r}
-      \\small#1 & #2 \\\\
-    \\end{tabular*}\\vspace{-7pt}
-}
-
-\\newcommand{\\resumeSubItem}[1]{\\resumeItem{#1}\\vspace{-4pt}}
-
-\\renewcommand\\labelitemii{$\\vcenter{\\hbox{\\tiny$\\bullet$}}$}
-
-\\newcommand{\\resumeSubHeadingListStart}{\\begin{itemize}[leftmargin=0.15in, label={}]}
-\\newcommand{\\resumeSubHeadingListEnd}{\\end{itemize}}
-\\newcommand{\\resumeItemListStart}{\\begin{itemize}}
-\\newcommand{\\resumeItemListEnd}{\\end{itemize}\\vspace{-5pt}}
-
-\\definecolor{Black}{RGB}{0, 0, 0}
-\\newcommand{\\seticon}[1]{\\textcolor{Black}{\\csname #1\\endcsname}}
-
-\\begin{document}
-
-%----------HEADING----------%
-\\begin{center}
-    \\textbf{\\Huge \\scshape Pavushetty Yashwanth Krishna} \\\\[5pt]
-    \\href{mailto:pyashwanthkrishna@gmail.com}{\\seticon{faEnvelope} \\underline{pyashwanthkrishna@gmail.com}} \\quad
-    \\href{https://www.linkedin.com/in/pyashwanthkrishna/}{\\seticon{faLinkedin} \\underline{@pyashwanthkrishna}} \\quad
-    \\href{https://github.com/yashwanth-3000}{\\seticon{faGithub} \\underline{@yashwanth-3000}}
-\\end{center}
-
-%-----------EDUCATION-----------%
-\\section{Education}
-\\resumeSubHeadingListStart
-    \\resumeSubheading
-    {KAKATIYA INSTITUTE OF TECHNOLOGY \\& SCIENCE WARANGAL}{Expected May 2026}
-    {Bachelor of Technology in Computer Science and Engineering}{Warangal, Telangana, India}
-\\resumeSubHeadingListEnd
-
-%-----------EXPERIENCE-----------%
-\\section{Experience}
-\\resumeSubHeadingListStart
-    \\resumeSubheading
-    {Restack (Earn By Building Program)}{Dec 2024}
-    {Open Source Contributor}{Remote / Berlin, Germany}
-    \\resumeItemListStart
-        \\resumeItem{Contributed to the Restack AI Python SDK Examples repository by integrating ElevenLabs' Text-to-Speech and Voice Isolation functionalities, simplifying user onboarding and providing clear workflow examples.}
-        \\resumeItem{Enhanced the repository's value through advanced integrations that demonstrate real-world applications of the Restack SDK, benefiting developers of all skill levels.}
-        \\resumeItem{Awarded \\$500 in recognition of high-quality contributions that align with Restack's mission to empower developers in building AI-powered applications.}
-    \\resumeItemListEnd
-\\resumeSubHeadingListEnd
-
-%-----------PROJECTS-----------%
-\\section{Projects}
-\\resumeSubHeadingListStart
-    \\resumeProjectHeading
-    {\\textbf{Text2Story} \\href{https://www.linkedin.com/posts/pyashwanthkrishna_ai-bulidspace-activity-7216175913535725569-1Z4H}{(Video Demo)} $|$ \\emph{AI, Animation, Voice Synthesis}}{}
-    \\resumeItemListStart
-        \\resumeItem{Developed an AI-driven platform that transforms textbook lessons into interactive, animated videos, enhancing children's education.}
-        \\resumeItem{Enabled parents to add personalized voiceovers, making learning more engaging and tailored to individual needs.}
-        \\resumeItem{Bridges traditional education with storytelling, improving retention and making concepts more accessible.}
-    \\resumeItemListEnd
-    
-    \\resumeProjectHeading
-    {\\textbf{Content Hub} \\href{https://lablab.ai/event/generative-ai-hackathon-with-ibm-granite/content-hub/content-hub}{(lablab.ai)} \\href{https://github.com/yashwanth-3000/content--hub}{(GitHub)} $|$ \\emph{AI, Social Media Automation}}{}
-    \\resumeItemListStart
-        \\resumeItem{Developed an AI-powered cross-platform content generation with IBM's Granite AI models and APIs to deliver personalized, SEO-optimized posts that capture each user's unique voice.}
-        \\resumeItem{Implemented a real-time ingestion pipeline from Twitter, LinkedIn, and Instagram to transform raw interactions into compelling narratives in seconds.}
-        \\resumeItem{Built an interactive analytics dashboard that provides actionable insights and performance metrics to refine digital communication strategies.}
-        \\resumeItem{Winner of the IBM Granite AI Challenge, securing the first prize among 1900 participants worldwide with a \\$5,000 USD reward.}
-    \\resumeItemListEnd
-    
-    \\resumeProjectHeading
-    {\\textbf{DevDocs} \\href{https://devpost.com/software/dev-docs}{(Devpost)} \\href{https://github.com/yashwanth-3000/Dev-Docs-Local}{(GitHub)} $|$ \\emph{AI-Powered Search, Workflow Automation}}{}
-    \\resumeItemListStart
-        \\resumeItem{Designed an AI-powered tool that streamlines developer workflows by providing real-time, accurate answers from company documentation.}
-        \\resumeItem{Utilized the Modus framework and Llama 3.1 to eliminate manual browsing through extensive documentation.}
-        \\resumeItem{Enabled AI-powered search, real-time results, and custom data integration, improving productivity and reducing frustration.}
-        \\resumeItem{Implemented Neo4j for knowledge graph storage and retrieval, leveraging RAG search for efficient query processing.}
-        \\resumeItem{Winner of the Hypermode Knowledge Graph + AI Challenge, securing the first prize among 553 teams worldwide with a \\$3,000 USD reward.}
-    \\resumeItemListEnd
-
-    \\resumeProjectHeading
-    {\\textbf{AI-Powered Space Exploration} \\href{https://www.spaceappschallenge.org/nasa-space-apps-2024/find-a-team/teamone/?tab=details}{(NASA Project)} $|$ \\emph{NASA Space Apps Challenge}}{}
-    \\resumeItemListStart
-        \\resumeItem{Developed an AI-powered platform inspired by the James Webb Space Telescope to create personalized space exploration videos.}
-        \\resumeItem{Integrated real telescope data with AI-generated visuals and multilingual narrations for a more immersive experience.}
-        \\resumeItem{Recognized as a Global Nominee and winner of the People's Choice Award in the NASA Space Apps Challenge.}
-    \\resumeItemListEnd
-\\resumeSubHeadingListEnd
-
-%-----------SKILLS-----------%
-\\section{Technical Skills}
-\\begin{itemize}[leftmargin=0.15in, label={}]
-    \\small{\\item{
-        \\textbf{AI Agent Development}{: CrewAI (Multi-Agent Systems), LangGraph (Stateful Workflows), LangChain (LLM Orchestration), Autonomous Agent Architectures, Agent Memory Management, Task Delegation Frameworks} \\\\
-        \\textbf{Vector and Graph Databases}{: Neo4j (Knowledge Graphs), Supabase (Vector Search), Pinecone (Vector Storage), Graph-Based RAG Architectures, Semantic Search Systems}
-    }}
-\\end{itemize}
-
-\\end{document}`
+const defaultLatexTemplate = ``
 
 export default function CVEditorPage() {
   const [latexCode, setLatexCode] = useState(defaultLatexTemplate)
@@ -187,6 +18,20 @@ export default function CVEditorPage() {
   const [compilationError, setCompilationError] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [isCompilingPreview, setIsCompilingPreview] = useState(false)
+
+  // Load LaTeX code from localStorage (if coming from Opus workflow)
+  React.useEffect(() => {
+    const savedLatex = localStorage.getItem('cvLatexCode')
+    if (savedLatex) {
+      setLatexCode(savedLatex)
+      localStorage.removeItem('cvLatexCode') // Clean up after loading
+      // Auto-compile the loaded code
+      setTimeout(() => {
+        handleCompilePreview()
+      }, 500)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(latexCode)

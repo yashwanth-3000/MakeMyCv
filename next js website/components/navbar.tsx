@@ -7,10 +7,9 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 const menuItems = [
-    { name: 'Features', href: '#link' },
-    { name: 'Solution', href: '#link' },
-    { name: 'Pricing', href: '#link' },
-    { name: 'About', href: '#link' },
+    { name: 'Create CV', href: '/create-cv' },
+    { name: 'lablab.ai', href: 'https://lablab.ai' },
+    { name: 'About', href: '/about' },
 ]
 
 const Logo = ({ className }: { className?: string }) => {
@@ -20,11 +19,11 @@ const Logo = ({ className }: { className?: string }) => {
                 viewBox="0 0 32 32"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-7 w-7">
-                <rect width="32" height="32" rx="8" fill="#1a1a1a" />
+                className="h-5 w-5">
+                <rect width="32" height="32" rx="8" fill="currentColor" className="opacity-10" />
                 <path
                     d="M8 12h16M8 16h16M8 20h12"
-                    stroke="white"
+                    stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                 />
@@ -103,25 +102,7 @@ export const Navbar = () => {
                             <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
                                 <Button
                                     asChild
-                                    variant="outline"
-                                    size="sm"
-                                    className={cn(isScrolled && 'lg:hidden')}>
-                                    <Link href="#">
-                                        <span>Login</span>
-                                    </Link>
-                                </Button>
-                                <Button
-                                    asChild
-                                    size="sm"
-                                    className={cn(isScrolled && 'lg:hidden')}>
-                                    <Link href="#">
-                                        <span>Sign Up</span>
-                                    </Link>
-                                </Button>
-                                <Button
-                                    asChild
-                                    size="sm"
-                                    className={cn(isScrolled ? 'lg:inline-flex' : 'hidden')}>
+                                    size="sm">
                                     <Link href="/create-cv">
                                         <span>Create CV</span>
                                     </Link>

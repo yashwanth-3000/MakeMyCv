@@ -39,172 +39,186 @@ interface Experience {
   location?: string
 }
 
-interface Template {
-  id: string
-  name: string
-  description: string
-  image: string
-  previewUrl: string
-}
-
 interface CVData extends SocialMediaData {
-  selectedTemplate: string
   selectedRepos: Repository[]
   selectedExperiences: Experience[]
   name: string
   title: string
   summary: string
-}
-
-// Step 0: Template Selection
-function TemplateSelector({ 
-  selectedTemplate,
-  onChange
-}: { 
-  selectedTemplate: string
-  onChange: (templateId: string) => void 
-}) {
-  const templates: Template[] = [
-    {
-      id: "professional",
-      name: "Professional",
-      description: "Clean and modern design perfect for software engineers and tech professionals. Features clear sections for experience, projects, and skills.",
-      image: "/templates/professional.png",
-      previewUrl: "#"
-    },
-    {
-      id: "academic",
-      name: "Academic",
-      description: "Structured layout ideal for researchers and academics. Emphasizes publications, education, and research experience.",
-      image: "/templates/academic.png",
-      previewUrl: "#"
-    },
-    {
-      id: "creative",
-      name: "Creative",
-      description: "Bold and eye-catching design for designers, artists, and creative professionals. Showcases portfolio and creative work.",
-      image: "/templates/creative.png",
-      previewUrl: "#"
-    }
-  ]
-
-  return (
-    <div className="h-full flex flex-col">
-      <div className="mb-4">
-        <h2 className="text-xl font-bold text-foreground mb-1">Choose Your Template</h2>
-        <p className="text-sm text-muted-foreground">Select a template that best fits your professional profile</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 items-start">
-        {templates.map((template, index) => (
-          <motion.div
-            key={template.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: index * 0.1, ease: "easeOut" }}
-            className={cn(
-              "border rounded-lg overflow-hidden cursor-pointer transition-all duration-200",
-              selectedTemplate === template.id
-                ? "border-foreground bg-gray-50/30 shadow-md"
-                : "border-border hover:border-gray-300 hover:shadow-sm"
-            )}
-            onClick={() => onChange(template.id)}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {/* Template Preview Image Placeholder */}
-            <div className="aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center relative">
-              <FileText className="h-16 w-16 text-gray-400" />
-              {selectedTemplate === template.id && (
-                <motion.div 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ duration: 0.3, type: "spring" }}
-                  className="absolute top-2 right-2 bg-foreground text-background rounded-full p-1"
-                >
-                  <Check className="h-4 w-4" />
-                </motion.div>
-              )}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-3">
-                <p className="text-white text-xs font-medium">Preview Available</p>
-              </div>
-            </div>
-
-            {/* Template Info */}
-            <div className="p-4 space-y-3">
-              <div>
-                <h3 className="font-semibold text-foreground mb-1">{template.name}</h3>
-                <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-                  {template.description}
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    // Preview functionality
-                  }}
-                >
-                  Preview
-                </Button>
-                <Button
-                  size="sm"
-                  className={cn(
-                    "flex-1 text-xs",
-                    selectedTemplate === template.id
-                      ? "bg-foreground text-background"
-                      : "bg-secondary text-foreground hover:bg-foreground hover:text-background"
-                  )}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onChange(template.id)
-                  }}
-                >
-                  {selectedTemplate === template.id ? "Selected" : "Select"}
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  )
+  githubRepo1?: string
+  githubRepo2?: string
+  githubRepo3?: string
+  jobDescription?: string
+  opusJobId?: string
+  opusLatexCode?: string
+  opusGeneratedCV?: any
 }
 
 // Step 1: Social Media Input Form
 function SocialMediaStep({ 
   data, 
-  onChange 
+  onChange
 }: { 
-  data: SocialMediaData
-  onChange: (data: SocialMediaData) => void 
+  data: SocialMediaData & { jobDescription?: string; githubRepo1?: string; githubRepo2?: string; githubRepo3?: string; selectedRepos?: Repository[] }
+  onChange: (data: any) => void
 }) {
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [repos, setRepos] = useState<Repository[]>([])
+  const [loadingRepos, setLoadingRepos] = useState(false)
+  const [repoError, setRepoError] = useState<string | null>(null)
+  // Always use professional template (AI-powered generation)
+  const isProfessionalTemplate = true
+  const selectedRepos = (data as any).selectedRepos || []
 
-  const handleChange = (field: keyof SocialMediaData, value: string) => {
+  const handleChange = (field: string, value: string) => {
     onChange({ ...data, [field]: value })
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: "" }))
     }
   }
 
-    const formFields = [
-      { id: "github", label: "GitHub Username", placeholder: "octocat", icon: Github, value: data.github, required: true },
-      { id: "linkedin", label: "LinkedIn Profile", placeholder: "linkedin.com/in/username", icon: Linkedin, value: data.linkedin },
-      { id: "twitter", label: "Twitter/X Handle", placeholder: "@username", icon: Twitter, value: data.twitter },
-      { id: "email", label: "Email Address", placeholder: "your.email@example.com", icon: Mail, value: data.email, type: "email" }
-    ]
+  // Extract username from GitHub URL or use as-is
+  const extractGitHubUsername = (input: string): string => {
+    if (!input) return ''
+    
+    // If it's a URL, extract username
+    const urlPattern = /github\.com\/([^\/]+)/i
+    const match = input.match(urlPattern)
+    
+    if (match) {
+      return match[1]
+    }
+    
+    // Otherwise, use as username
+    return input.trim()
+  }
+
+  // Fetch repos when GitHub username changes
+  React.useEffect(() => {
+    const fetchRepos = async () => {
+      if (!isProfessionalTemplate || !data.github || data.github.trim() === '') {
+        setRepos([])
+        return
+      }
+
+      setLoadingRepos(true)
+      setRepoError(null)
+
+      try {
+        const username = extractGitHubUsername(data.github)
+        const githubApiUrl = `https://api.github.com/users/${username}/repos?sort=updated&per_page=100`
+        const response = await fetch(githubApiUrl)
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch GitHub repositories')
+        }
+
+        const reposData = await response.json()
+        const formattedRepos: Repository[] = reposData.map((repo: any) => ({
+          id: repo.id.toString(),
+          name: repo.name,
+          description: repo.description || "No description available",
+          language: repo.language || "N/A",
+          stars: repo.stargazers_count,
+          url: repo.html_url
+        }))
+
+        setRepos(formattedRepos)
+
+        // Auto-select repos that match pre-filled URLs
+        const preFilledUrls = [
+          (data as any).githubRepo1,
+          (data as any).githubRepo2,
+          (data as any).githubRepo3
+        ].filter(Boolean)
+
+        if (preFilledUrls.length > 0 && selectedRepos.length === 0) {
+          const matchingRepos = formattedRepos.filter(repo => 
+            preFilledUrls.includes(repo.url)
+          )
+          
+          if (matchingRepos.length > 0) {
+            onChange({
+              ...data,
+              selectedRepos: matchingRepos,
+              githubRepo1: matchingRepos[0]?.url || '',
+              githubRepo2: matchingRepos[1]?.url || '',
+              githubRepo3: matchingRepos[2]?.url || ''
+            })
+          }
+        }
+      } catch (err) {
+        setRepoError(err instanceof Error ? err.message : 'Failed to fetch repositories')
+        setRepos([])
+      } finally {
+        setLoadingRepos(false)
+      }
+    }
+
+    const timeoutId = setTimeout(fetchRepos, 500) // Debounce
+    return () => clearTimeout(timeoutId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.github, isProfessionalTemplate])
+
+  const handleToggleRepo = (repo: Repository) => {
+    const isSelected = selectedRepos.some((r: Repository) => r.id === repo.id)
+    let newSelectedRepos: Repository[]
+
+    if (isSelected) {
+      newSelectedRepos = selectedRepos.filter((r: Repository) => r.id !== repo.id)
+    } else {
+      if (selectedRepos.length >= 3) {
+        alert('You can select up to 3 repositories only')
+        return
+      }
+      newSelectedRepos = [...selectedRepos, repo]
+    }
+
+    // Update the data with selected repos and their URLs
+    onChange({
+      ...data,
+      selectedRepos: newSelectedRepos,
+      githubRepo1: newSelectedRepos[0]?.url || '',
+      githubRepo2: newSelectedRepos[1]?.url || '',
+      githubRepo3: newSelectedRepos[2]?.url || ''
+    })
+  }
+
+  const formFields = [
+    { id: "github", label: "GitHub Username or URL", placeholder: "octocat or https://github.com/octocat", icon: Github, value: data.github, required: true },
+    { id: "linkedin", label: "LinkedIn Profile", placeholder: "linkedin.com/in/username", icon: Linkedin, value: data.linkedin, required: isProfessionalTemplate },
+    { id: "twitter", label: "Twitter/X Handle", placeholder: "@username or yashwanthstwt", icon: Twitter, value: data.twitter, required: isProfessionalTemplate },
+    { id: "email", label: "Email Address", placeholder: "your.email@example.com", icon: Mail, value: data.email, type: "email" }
+  ]
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-bold text-foreground mb-1">Social Media Profiles</h2>
-        <p className="text-sm text-muted-foreground">Connect your professional profiles to generate your CV</p>
+        <h2 className="text-xl font-bold text-foreground mb-1">
+          {isProfessionalTemplate ? 'AI-Powered CV Generation' : 'Social Media Profiles'}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {isProfessionalTemplate 
+            ? 'Provide your details and let AI generate your professional CV (approx. 2 minutes)'
+            : 'Connect your professional profiles to generate your CV'}
+        </p>
       </div>
+
+      {isProfessionalTemplate && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-semibold text-blue-900 text-sm">AI-Powered Generation</h3>
+              <p className="text-xs text-blue-700">Our AI will analyze your projects and generate a tailored CV in approximately 2 minutes</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-3">
         {formFields.map((field, index) => {
@@ -227,14 +241,635 @@ function SocialMediaStep({
                   type={field.type || "text"}
                   placeholder={field.placeholder}
                   value={field.value}
-                  onChange={(e) => handleChange(field.id as keyof SocialMediaData, e.target.value)}
+                  onChange={(e) => handleChange(field.id, e.target.value)}
                   className="pl-10 transition-all duration-200 focus:shadow-sm"
                 />
               </div>
             </motion.div>
           )
         })}
+
+        {isProfessionalTemplate && (
+          <>
+            {/* Repository Selection */}
+            {data.github && (
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: formFields.length * 0.08, ease: "easeOut" }}
+                className="space-y-2"
+              >
+                <Label className="text-sm font-medium">
+                  Select 3 GitHub Repositories <span className="text-red-500">*</span>
+                </Label>
+                
+                {loadingRepos && (
+                  <div className="flex items-center justify-center py-4 border rounded-lg">
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-600 mr-2" />
+                    <span className="text-sm text-muted-foreground">Loading repositories...</span>
+                  </div>
+                )}
+
+                {repoError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-sm text-red-600">{repoError}</p>
+                  </div>
+                )}
+
+                {!loadingRepos && !repoError && repos.length > 0 && (
+                  <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3">
+                    {repos.map((repo) => {
+                      const isSelected = selectedRepos.some((r: Repository) => r.id === repo.id)
+                      return (
+                        <motion.div
+                          key={repo.id}
+                          className={cn(
+                            "border rounded-lg p-3 cursor-pointer transition-all duration-200",
+                            isSelected 
+                              ? "border-foreground bg-gray-50/50 shadow-sm" 
+                              : "border-border hover:border-gray-300 hover:shadow-sm"
+                          )}
+                          onClick={() => handleToggleRepo(repo)}
+                          whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <div className="flex items-start gap-2">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => handleToggleRepo(repo)}
+                              className="mt-0.5"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-semibold text-sm text-foreground">{repo.name}</h3>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                                  {repo.language}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2">{repo.description}</p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                <Star className="h-3 w-3" />
+                                <span>{repo.stars} stars</span>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {!loadingRepos && !repoError && repos.length === 0 && data.github && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p className="text-sm text-yellow-600">No repositories found for this username</p>
+                  </div>
+                )}
+
+                {selectedRepos.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedRepos.length} of 3 repositories selected
+                  </p>
+                )}
+              </motion.div>
+            )}
+
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: (formFields.length + 1) * 0.08, ease: "easeOut" }}
+              className="space-y-2"
+            >
+              <Label htmlFor="jobDescription" className="text-sm font-medium">
+                Job Description <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="jobDescription"
+                placeholder="Paste the job description here..."
+                value={(data as any).jobDescription || ''}
+                onChange={(e) => handleChange('jobDescription', e.target.value)}
+                className="min-h-[120px] transition-all duration-200 focus:shadow-sm"
+              />
+            </motion.div>
+          </>
+        )}
       </div>
+    </div>
+  )
+}
+
+// Step 2A: Opus-Powered CV Generation (for Professional Template only)
+function OpusCVGeneration({
+  data,
+  onChange
+}: {
+  data: CVData
+  onChange: (data: CVData) => void
+}) {
+  const [status, setStatus] = useState<'idle' | 'generating' | 'completed' | 'failed'>('idle')
+  const [progress, setProgress] = useState(0)
+  const [statusMessage, setStatusMessage] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [logs, setLogs] = useState<string[]>([])
+  const [auditLog, setAuditLog] = useState<any>(null)
+  const hasStartedGeneration = React.useRef(false)
+
+  const WORKFLOW_ID = process.env.NEXT_PUBLIC_OPUS_WORKFLOW_ID || '5sLHcgw7N9gVv5lz'
+
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString()
+    setLogs(prev => [`[${timestamp}] ${message}`, ...prev])
+  }
+
+  const generateCV = async () => {
+    // Reset the ref when manually retrying
+    hasStartedGeneration.current = true
+    
+    setStatus('generating')
+    setProgress(0)
+    setError(null)
+    setLogs([])
+    setAuditLog(null)
+    setStatusMessage('Initializing workflow...')
+    addLog('🚀 Starting CV generation workflow')
+
+    try {
+      // Step 1: Fetch workflow schema
+      setProgress(10)
+      setStatusMessage('Fetching workflow schema...')
+      addLog(`📋 Fetching workflow schema for workflow ID: ${WORKFLOW_ID}`)
+      
+      const schemaResponse = await fetch(`/api/opus/workflow/${WORKFLOW_ID}`)
+      if (!schemaResponse.ok) {
+        throw new Error('Failed to fetch workflow schema')
+      }
+      const workflowSchema = await schemaResponse.json()
+      addLog(`✅ Workflow schema fetched successfully: ${workflowSchema.name}`)
+      console.log('📋 Workflow Schema:', workflowSchema)
+      
+      // Step 2: Initiate job
+      setProgress(20)
+      setStatusMessage('Initiating job...')
+      addLog(`📝 Initiating job for ${data.github}`)
+      const initiateResponse = await fetch('/api/opus/job/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workflowId: WORKFLOW_ID,
+          title: `CV Generation for ${data.github}`,
+          description: 'AI-powered CV generation from user profile'
+        })
+      })
+
+      if (!initiateResponse.ok) {
+        const errorData = await initiateResponse.json()
+        addLog(`❌ Failed to initiate job: ${errorData.error}`)
+        throw new Error(errorData.error || 'Failed to initiate job')
+      }
+
+      const { jobExecutionId } = await initiateResponse.json()
+      onChange({ ...data, opusJobId: jobExecutionId })
+      addLog(`✅ Job initiated successfully with ID: ${jobExecutionId}`)
+
+      // Step 3: Build payload directly (same as test-opus)
+      setProgress(30)
+      setStatusMessage('Preparing workflow inputs...')
+      addLog('📦 Preparing workflow inputs...')
+      
+      // Direct mapping from CV data to workflow inputs
+      const jobPayloadSchemaInstance: Record<string, any> = {
+        workflow_input_kywzun45y: { value: data.githubRepo1 || '', type: 'str' },
+        workflow_input_b6wxg8qkt: { value: data.githubRepo2 || '', type: 'str' },
+        workflow_input_i4i825m16: { value: data.githubRepo3 || '', type: 'str' },
+        workflow_input_qior8st0v: { value: data.linkedin || '', type: 'str' },
+        workflow_input_mj5wlva02: { value: data.twitter || '', type: 'str' },
+        workflow_input_3loh6ags2: { value: data.jobDescription || '', type: 'str' }
+      }
+      
+      addLog(`✅ Workflow inputs prepared: 3 repos, LinkedIn, Twitter, job description`)
+      console.log('📤 Payload:', jobPayloadSchemaInstance)
+      
+      // Step 4: Execute job with inputs
+      setProgress(40)
+      setStatusMessage('Executing workflow...')
+      addLog('🚀 Executing workflow...')
+      
+      const executeResponse = await fetch('/api/opus/job/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobExecutionId,
+          jobPayloadSchemaInstance
+        })
+      })
+
+      if (!executeResponse.ok) {
+        const errorData = await executeResponse.json().catch(() => ({}))
+        console.error('Execute job failed:', errorData)
+        addLog(`❌ Workflow execution failed: ${errorData.error || 'Unknown error'}`)
+        throw new Error(errorData.details || errorData.error || 'Failed to execute job')
+      }
+
+      addLog('✅ Workflow execution started successfully')
+
+      // Step 5: Poll for completion (auto-poll every 10 seconds for 3 minutes)
+      setProgress(50)
+      setStatusMessage('Processing...')
+      addLog('⏳ Polling for completion (this may take 1-3 minutes)...')
+      
+      let completed = false
+      let attempts = 0
+      const maxAttempts = 18 // 3 minutes (10 seconds * 18)
+      const startTime = Date.now()
+
+      while (!completed && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 10000)) // Poll every 10 seconds
+        attempts++
+        
+        const progressPercent = 50 + (attempts / maxAttempts) * 40
+        setProgress(Math.min(90, progressPercent))
+        
+        // Calculate elapsed time
+        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000)
+        const minutes = Math.floor(elapsedSeconds / 60)
+        const seconds = elapsedSeconds % 60
+        const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`
+        
+        try {
+          // Try to get job status - handle transient API failures gracefully
+          const statusResponse = await fetch(`/api/opus/job/${jobExecutionId}/status`)
+          
+          if (!statusResponse.ok) {
+            // API call failed, but don't stop - log and continue polling
+            addLog(`⚠️ Status check #${attempts} failed (API error), will retry... (${timeString})`)
+            setStatusMessage(`Processing... (${timeString}) - Retrying status check...`)
+            continue // Skip to next iteration
+          }
+          
+          const { status: jobStatus } = await statusResponse.json()
+          
+          setStatusMessage(`Processing... (${timeString}) - Status: ${jobStatus}`)
+          addLog(`⏳ Job status check #${attempts}: ${jobStatus} (${timeString} elapsed)`)
+
+          // Only stop on definitive status from the workflow
+          if (jobStatus === 'COMPLETED') {
+            completed = true
+            addLog('🎉 Job completed successfully!')
+          } else if (jobStatus === 'FAILED') {
+            // Job explicitly failed - this is the only real failure
+            addLog('❌ Workflow execution returned FAILED status')
+            
+            // Try to get more details about the failure
+            try {
+              const failedAuditResponse = await fetch(`/api/opus/job/${jobExecutionId}/audit`)
+              if (failedAuditResponse.ok) {
+                const failedAudit = await failedAuditResponse.json()
+                addLog(`📊 Failed nodes: ${failedAudit.failed_nodes?.join(', ') || 'Unknown'}`)
+                setAuditLog(failedAudit)
+              }
+            } catch (auditErr) {
+              addLog('⚠️ Could not fetch audit log for failed job')
+            }
+            
+            throw new Error('Workflow execution failed. Check the audit log for details.')
+          }
+        } catch (pollError: any) {
+          // If it's our intentional error (FAILED status), re-throw it
+          if (pollError.message?.includes('Workflow execution failed')) {
+            throw pollError
+          }
+          
+          // Otherwise it's a transient network error - log and continue
+          addLog(`⚠️ Status check #${attempts} encountered error: ${pollError.message}. Continuing...`)
+          setStatusMessage(`Processing... (${timeString}) - Connection issue, retrying...`)
+          // Continue polling - don't give up on transient errors
+        }
+      }
+
+      if (!completed) {
+        addLog('⏰ Job execution timed out after 3 minutes')
+        throw new Error('Job execution timed out after 3 minutes. The workflow may still be running.')
+      }
+
+      // Step 6: Get results
+      setProgress(95)
+      setStatusMessage('Retrieving your generated CV...')
+      addLog('📥 Fetching job results...')
+      
+      const resultsResponse = await fetch(`/api/opus/job/${jobExecutionId}/results`)
+      const results = await resultsResponse.json()
+      addLog('✅ Results fetched successfully')
+      
+      console.log('📦 Full Results Object:', JSON.stringify(results, null, 2))
+      console.log('📦 Results keys:', Object.keys(results))
+
+      // Try multiple extraction paths
+      let latexCode = ''
+      
+      // Path 1: Check jobResultsPayloadSchema
+      if (results?.jobResultsPayloadSchema) {
+        console.log('🔍 jobResultsPayloadSchema:', results.jobResultsPayloadSchema)
+        const outputKeys = Object.keys(results.jobResultsPayloadSchema)
+        console.log('🔍 Output keys:', outputKeys)
+        
+        // Try each output key
+        for (const key of outputKeys) {
+          const value = results.jobResultsPayloadSchema[key]
+          console.log(`🔍 Checking ${key}:`, value)
+          
+          if (value?.value?.cv_latex) {
+            latexCode = value.value.cv_latex
+            console.log('✅ Found LaTeX in path 1:', key)
+            break
+          }
+          if (value?.value && typeof value.value === 'string' && value.value.includes('\\documentclass')) {
+            latexCode = value.value
+            console.log('✅ Found LaTeX string in path 1:', key)
+            break
+          }
+        }
+      }
+      
+      // Path 2: Check direct results
+      if (!latexCode && results?.results?.cv_latex) {
+        latexCode = results.results.cv_latex
+        console.log('✅ Found LaTeX in path 2')
+      }
+      
+      // Path 3: Check if results itself is a string
+      if (!latexCode && typeof results === 'string' && results.includes('\\documentclass')) {
+        latexCode = results
+        console.log('✅ Found LaTeX as string in path 3')
+      }
+      
+      // Path 4: Check for any property that looks like LaTeX
+      if (!latexCode) {
+        const searchForLatex = (obj: any, depth = 0): string => {
+          if (depth > 5) return ''
+          if (typeof obj === 'string' && obj.includes('\\documentclass')) {
+            return obj
+          }
+          if (typeof obj === 'object' && obj !== null) {
+            for (const key in obj) {
+              const result = searchForLatex(obj[key], depth + 1)
+              if (result) return result
+            }
+          }
+          return ''
+        }
+        latexCode = searchForLatex(results)
+        if (latexCode) console.log('✅ Found LaTeX via deep search')
+      }
+
+      console.log('📄 Extracted LaTeX length:', latexCode.length)
+      console.log('📄 LaTeX preview (first 200 chars):', latexCode.substring(0, 200))
+
+      if (latexCode && latexCode.length > 0) {
+        addLog(`✅ LaTeX code extracted successfully (${latexCode.length} characters)`)
+      } else {
+        addLog('⚠️ Warning: No LaTeX code found in results')
+      }
+
+      // Step 7: Fetch audit log
+      setStatusMessage('Fetching audit log...')
+      addLog('📊 Fetching audit log for workflow execution...')
+      
+      try {
+        const auditResponse = await fetch(`/api/opus/job/${jobExecutionId}/audit`)
+        if (auditResponse.ok) {
+          const audit = await auditResponse.json()
+          setAuditLog(audit)
+          addLog(`✅ Audit log fetched: ${audit.nb_executed_nodes || 0} nodes executed`)
+          console.log('📊 Audit Log:', audit)
+        } else {
+          addLog('⚠️ Failed to fetch audit log (non-critical)')
+        }
+      } catch (auditErr) {
+        console.error('Failed to fetch audit log:', auditErr)
+        addLog('⚠️ Failed to fetch audit log (non-critical)')
+      }
+
+      setProgress(100)
+      setStatus('completed')
+      setStatusMessage('CV generated successfully!')
+      addLog('🎊 CV generation workflow completed successfully!')
+      
+      onChange({
+        ...data,
+        opusGeneratedCV: results,
+        opusLatexCode: latexCode
+      })
+
+    } catch (err: any) {
+      setStatus('failed')
+      setError(err.message || 'Failed to generate CV')
+      setStatusMessage('Failed to generate CV')
+      addLog(`❌ ERROR: ${err.message || 'Failed to generate CV'}`)
+    }
+  }
+
+  React.useEffect(() => {
+    // Only generate once - prevent duplicate calls
+    if (!hasStartedGeneration.current && status === 'idle' && data.githubRepo1 && data.githubRepo2 && data.githubRepo3 && data.linkedin && data.twitter && data.jobDescription) {
+      hasStartedGeneration.current = true
+      addLog('🔒 Generation initiated (preventing duplicate calls)')
+      generateCV()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-foreground mb-1">AI is Generating Your CV</h2>
+        <p className="text-sm text-muted-foreground">
+          Please wait while our AI analyzes your profiles and creates a professional CV
+        </p>
+      </div>
+
+      {/* Progress Card */}
+      <div className="bg-white border rounded-lg p-6 shadow-sm">
+        <div className="space-y-4">
+          {/* Progress Bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-foreground">{statusMessage}</span>
+              <span className="text-sm font-medium text-foreground">{Math.round(progress)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <motion.div
+                className={cn(
+                  "h-full rounded-full",
+                  status === 'completed' ? 'bg-green-500' :
+                  status === 'failed' ? 'bg-red-500' :
+                  'bg-blue-500'
+                )}
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
+              />
+            </div>
+          </div>
+
+          {/* Status Icon */}
+          <div className="flex items-center justify-center py-8">
+            {status === 'generating' && (
+              <Loader2 className="h-16 w-16 animate-spin text-blue-600" />
+            )}
+            {status === 'completed' && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200 }}
+              >
+                <CheckCircle className="h-16 w-16 text-green-600" />
+              </motion.div>
+            )}
+            {status === 'failed' && (
+              <AlertCircle className="h-16 w-16 text-red-600" />
+            )}
+          </div>
+
+          {/* Status Message */}
+          <div className="text-center">
+            {status === 'generating' && (
+              <p className="text-sm text-muted-foreground">
+                This usually takes about 2 minutes. Please don&apos;t close this window.
+              </p>
+            )}
+            {status === 'completed' && (
+              <p className="text-sm text-green-600 font-medium">
+                Your professional CV has been generated! Click Next to view and edit it.
+              </p>
+            )}
+            {status === 'failed' && error && (
+              <div className="space-y-2">
+                <p className="text-sm text-red-600 font-medium">{error}</p>
+                <Button onClick={generateCV} variant="outline" size="sm">
+                  Retry
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Real-Time Activity Logs */}
+      {logs.length > 0 && (
+        <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+          <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <h3 className="text-lg font-semibold text-foreground">Real-Time Activity Log</h3>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLogs([])}
+            >
+              Clear
+            </Button>
+          </div>
+          <div className="bg-gray-900 text-green-400 p-4 font-mono text-xs max-h-64 overflow-y-auto">
+            {logs.map((log, idx) => (
+              <div key={idx} className="mb-1 whitespace-pre-wrap break-all">{log}</div>
+            ))}
+            {logs.length === 0 && (
+              <div className="text-gray-500">No activity yet...</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Audit Log Display */}
+      {auditLog && status === 'completed' && (
+        <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+          <div className="p-4 border-b bg-gray-50">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <h3 className="text-lg font-semibold text-foreground">Workflow Execution Audit</h3>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            {/* Execution Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-xs text-gray-600 mb-1">Total Nodes</p>
+                <p className="text-2xl font-bold text-blue-600">{auditLog.nb_nodes || 0}</p>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <p className="text-xs text-gray-600 mb-1">Executed</p>
+                <p className="text-2xl font-bold text-green-600">{auditLog.nb_executed_nodes || 0}</p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <p className="text-xs text-gray-600 mb-1">Remaining</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  {auditLog.remaining_nodes_to_execute?.length || 0}
+                </p>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg">
+                <p className="text-xs text-gray-600 mb-1">Failed</p>
+                <p className="text-2xl font-bold text-red-600">{auditLog.nb_failed_nodes || 0}</p>
+              </div>
+            </div>
+
+            {/* Executed Nodes */}
+            {auditLog.executed_nodes && auditLog.executed_nodes.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  Executed Nodes ({auditLog.executed_nodes.length})
+                </h4>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {auditLog.executed_nodes.map((node: string, idx: number) => (
+                    <div key={idx} className="flex items-center space-x-2 bg-green-50 p-2 rounded text-xs">
+                      <span className="text-green-600">✓</span>
+                      <span className="text-gray-700">{node}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Failed Nodes */}
+            {auditLog.failed_nodes && auditLog.failed_nodes.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-3 text-red-600 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  Failed Nodes ({auditLog.failed_nodes.length})
+                </h4>
+                <div className="space-y-2">
+                  {auditLog.failed_nodes.map((node: string, idx: number) => (
+                    <div key={idx} className="flex items-center space-x-2 bg-red-50 p-2 rounded text-xs">
+                      <span className="text-red-600">✗</span>
+                      <span className="text-gray-700">{node}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* View Full Audit Data */}
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800 font-medium">
+                View Full Audit Data
+              </summary>
+              <div className="bg-gray-100 p-4 rounded overflow-x-auto mt-2">
+                <pre className="text-xs">{JSON.stringify(auditLog, null, 2)}</pre>
+              </div>
+            </details>
+          </div>
+        </div>
+      )}
+
+      {/* LaTeX Preview (if completed) */}
+      {status === 'completed' && data.opusLatexCode && (
+        <div className="bg-white border rounded-lg p-6 shadow-sm">
+          <h3 className="text-lg font-semibold mb-3">Generated LaTeX Code</h3>
+          <div className="bg-gray-50 p-4 rounded max-h-96 overflow-auto">
+            <pre className="text-xs font-mono">{data.opusLatexCode}</pre>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -281,7 +916,7 @@ function RepositoryAndExperienceSelector({
         setLoadingGithub(true)
         setError(null)
         
-        const githubApiUrl = `https://api.github.com/users/${githubUsername}/repos?sort=updated&per_page=10`
+        const githubApiUrl = `https://api.github.com/users/${githubUsername}/repos?sort=updated&per_page=100`
         console.log('📡 [GITHUB] API URL:', githubApiUrl)
         
         const reposResponse = await fetch(githubApiUrl)
@@ -441,6 +1076,7 @@ function RepositoryAndExperienceSelector({
     if (githubUsername) {
       fetchData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [githubUsername, linkedinUrl])
 
   const handleToggleRepo = (repo: Repository) => {
@@ -711,7 +1347,7 @@ function RepositoryAndExperienceSelector({
               <div className="text-center py-8 text-muted-foreground">
                 <Briefcase className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No LinkedIn experiences found</p>
-                <p className="text-xs mt-1">Add your experiences manually using the "Add" button above</p>
+                <p className="text-xs mt-1">Add your experiences manually using the &ldquo;Add&rdquo; button above</p>
               </div>
             )}
             {experiences.map((exp, index) => {
@@ -821,6 +1457,57 @@ function CVPreview({
   const [downloadStatus, setDownloadStatus] = useState<"idle" | "downloading" | "downloaded" | "complete">("idle")
   const [progress, setProgress] = useState(0)
   const [isEditing, setIsEditing] = useState(false)
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [compiling, setCompiling] = useState(false)
+  const [compilationError, setCompilationError] = useState<string | null>(null)
+
+  // Auto-compile LaTeX when available
+  React.useEffect(() => {
+    if (data.opusLatexCode && !pdfUrl) {
+      handleCompileLatex()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.opusLatexCode])
+
+  const handleCompileLatex = async () => {
+    if (!data.opusLatexCode) return
+
+    setCompiling(true)
+    setCompilationError(null)
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/api/compile-latex`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ latex_code: data.opusLatexCode }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.detail || 'Compilation failed')
+      }
+
+      // Create blob URL for preview
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      
+      // Clean up old URL if exists
+      if (pdfUrl) {
+        window.URL.revokeObjectURL(pdfUrl)
+      }
+      
+      setPdfUrl(url)
+    } catch (error) {
+      console.error('Compilation error:', error)
+      setCompilationError(error instanceof Error ? error.message : 'Unknown error occurred')
+      setPdfUrl(null)
+    } finally {
+      setCompiling(false)
+    }
+  }
 
   const handleDownload = () => {
     setDownloadStatus("downloading")
@@ -848,149 +1535,227 @@ function CVPreview({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-foreground mb-1">CV Preview</h2>
-          <p className="text-sm text-muted-foreground">Review and edit your CV before downloading</p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsEditing(!isEditing)}
-        >
-          <Edit2 className="h-4 w-4 mr-2" />
-          {isEditing ? "Done" : "Edit"}
-        </Button>
-      </div>
-
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
-        className="border border-border rounded-lg bg-background shadow-sm"
-      >
-        <div className="p-8 space-y-6">
-          {/* Header */}
-          <div className="border-b border-border pb-6">
-            {isEditing ? (
-              <div className="space-y-3">
-                <Input
-                  value={data.name || "Your Name"}
-                  onChange={(e) => onChange({ ...data, name: e.target.value })}
-                  className="text-3xl font-bold"
-                  placeholder="Your Name"
-                />
-                <Input
-                  value={data.title || "Professional Title"}
-                  onChange={(e) => onChange({ ...data, title: e.target.value })}
-                  className="text-lg"
-                  placeholder="Professional Title"
-                />
-              </div>
-            ) : (
-              <>
-                <h1 className="text-3xl font-bold text-foreground mb-2">
-                  {data.name || "Your Name"}
-                </h1>
-                <p className="text-lg text-muted-foreground">
-                  {data.title || "Professional Title"}
-                </p>
-              </>
-            )}
+      {/* Only show default preview if no Opus LaTeX code */}
+      {!data.opusLatexCode && (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-1">CV Preview</h2>
+              <p className="text-sm text-muted-foreground">Review and edit your CV before downloading</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(!isEditing)}
+            >
+              <Edit2 className="h-4 w-4 mr-2" />
+              {isEditing ? "Done" : "Edit"}
+            </Button>
           </div>
 
-          {/* Contact Info */}
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Contact</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-              {data.email && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Mail className="h-4 w-4" />
-                  <span>{data.email}</span>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="border border-border rounded-lg bg-background shadow-sm"
+          >
+            <div className="p-8 space-y-6">
+              {/* Header */}
+              <div className="border-b border-border pb-6">
+                {isEditing ? (
+                  <div className="space-y-3">
+                    <Input
+                      value={data.name || "Your Name"}
+                      onChange={(e) => onChange({ ...data, name: e.target.value })}
+                      className="text-3xl font-bold"
+                      placeholder="Your Name"
+                    />
+                    <Input
+                      value={data.title || "Professional Title"}
+                      onChange={(e) => onChange({ ...data, title: e.target.value })}
+                      className="text-lg"
+                      placeholder="Professional Title"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <h1 className="text-3xl font-bold text-foreground mb-2">
+                      {data.name || "Your Name"}
+                    </h1>
+                    <p className="text-lg text-muted-foreground">
+                      {data.title || "Professional Title"}
+                    </p>
+                  </>
+                )}
+              </div>
+
+              {/* Contact Info */}
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-3">Contact</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  {data.email && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Mail className="h-4 w-4" />
+                      <span>{data.email}</span>
+                    </div>
+                  )}
+                  {data.github && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Github className="h-4 w-4" />
+                      <span>{data.github}</span>
+                    </div>
+                  )}
+                  {data.linkedin && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Linkedin className="h-4 w-4" />
+                      <span>{data.linkedin}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-3">Summary</h3>
+                {isEditing ? (
+                  <Textarea
+                    value={data.summary || ""}
+                    onChange={(e) => onChange({ ...data, summary: e.target.value })}
+                    placeholder="Write a brief professional summary..."
+                    className="min-h-[100px]"
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {data.summary || "Add a professional summary to highlight your experience and skills."}
+                  </p>
+                )}
+              </div>
+
+              {/* Experience */}
+              {data.selectedExperiences.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-3">Experience</h3>
+                  <div className="space-y-4">
+                    {data.selectedExperiences.map((exp) => (
+                      <div key={exp.id} className="border-l-2 border-foreground pl-4">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div>
+                            <h4 className="font-semibold text-foreground">{exp.title}</h4>
+                            <p className="text-sm text-muted-foreground">{exp.company}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {exp.duration}
+                          </span>
+                        </div>
+                        {exp.location && (
+                          <p className="text-xs text-muted-foreground mb-2">{exp.location}</p>
+                        )}
+                        <p className="text-sm text-muted-foreground">{exp.description}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-              {data.github && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Github className="h-4 w-4" />
-                  <span>{data.github}</span>
+
+              {/* Projects */}
+              {data.selectedRepos.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-3">Featured Projects</h3>
+                  <div className="space-y-4">
+                    {data.selectedRepos.map((repo) => (
+                      <div key={repo.id} className="border-l-2 border-foreground pl-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-foreground">{repo.name}</h4>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            {repo.language}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{repo.description}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>⭐ {repo.stars} stars</span>
+                        </div>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            )}
+            </div>
+          </motion.div>
+        </>
+      )}
+
+      {/* LaTeX PDF Preview (for Professional Template with Opus) */}
+      {data.opusLatexCode && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
+          className="bg-white border rounded-lg overflow-hidden shadow-sm"
+        >
+          <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <h3 className="text-lg font-semibold text-foreground">AI-Generated CV</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              {compiling && (
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Compiling...
+                </span>
               )}
-              {data.linkedin && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Linkedin className="h-4 w-4" />
-                  <span>{data.linkedin}</span>
-                </div>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCompileLatex}
+                disabled={compiling}
+              >
+                {compiling ? 'Compiling...' : 'Recompile'}
+              </Button>
             </div>
           </div>
-
-          {/* Summary */}
-          <div>
-            <h3 className="text-lg font-semibold text-foreground mb-3">Summary</h3>
-            {isEditing ? (
-              <Textarea
-                value={data.summary || ""}
-                onChange={(e) => onChange({ ...data, summary: e.target.value })}
-                placeholder="Write a brief professional summary..."
-                className="min-h-[100px]"
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {data.summary || "Add a professional summary to highlight your experience and skills."}
-              </p>
-            )}
-          </div>
-
-          {/* Experience */}
-          {data.selectedExperiences.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-3">Experience</h3>
-              <div className="space-y-4">
-                {data.selectedExperiences.map((exp) => (
-                  <div key={exp.id} className="border-l-2 border-foreground pl-4">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <div>
-                        <h4 className="font-semibold text-foreground">{exp.title}</h4>
-                        <p className="text-sm text-muted-foreground">{exp.company}</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {exp.duration}
-                      </span>
-                    </div>
-                    {exp.location && (
-                      <p className="text-xs text-muted-foreground mb-2">{exp.location}</p>
-                    )}
-                    <p className="text-sm text-muted-foreground">{exp.description}</p>
-                  </div>
-                ))}
+          
+          {compilationError && (
+            <div className="p-4 bg-red-50 border-b border-red-200">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-red-900 mb-1">Compilation Failed</h4>
+                  <p className="text-sm text-red-700 whitespace-pre-wrap">{compilationError}</p>
+                </div>
               </div>
             </div>
           )}
-
-          {/* Projects */}
-          {data.selectedRepos.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-3">Featured Projects</h3>
-              <div className="space-y-4">
-                {data.selectedRepos.map((repo) => (
-                  <div key={repo.id} className="border-l-2 border-foreground pl-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-semibold text-foreground">{repo.name}</h4>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        {repo.language}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">{repo.description}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>⭐ {repo.stars} stars</span>
-                    </div>
+          
+          <div className="bg-gray-100" style={{ height: '600px' }}>
+            {pdfUrl ? (
+              <iframe
+                src={pdfUrl}
+                className="w-full h-full border-0"
+                title="CV PDF Preview"
+              />
+            ) : compiling ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+                  <p className="text-sm text-muted-foreground">Compiling your CV...</p>
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center p-8">
+                  <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">No Preview Available</h3>
+                  <p className="text-sm text-gray-500 mb-4">Click &ldquo;Recompile&rdquo; to generate a preview</p>
+                  <Button variant="outline" onClick={handleCompileLatex}>
+                    Compile LaTeX
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* Download Button */}
       <motion.div
@@ -1044,36 +1809,81 @@ export default function CVGeneratorWizard() {
   const [currentStep, setCurrentStep] = useState(0)
   const [animationDirection, setAnimationDirection] = useState<"forward" | "backward">("forward")
   const [cvData, setCVData] = useState<CVData>({
-    selectedTemplate: "",
-    github: "",
-    linkedin: "",
-    twitter: "",
+    github: "yashwanth-3000",
+    linkedin: "https://www.linkedin.com/in/pyashwanthkrishna/",
+    twitter: "yashwanthstwt",
     email: "",
     selectedRepos: [],
     selectedExperiences: [],
     name: "",
     title: "",
-    summary: ""
+    summary: "",
+    githubRepo1: "https://github.com/yashwanth-3000/Mathemagica",
+    githubRepo2: "https://github.com/yashwanth-3000/MakeMyCv",
+    githubRepo3: "https://github.com/yashwanth-3000/content--hub",
+    jobDescription: "Design, build, and optimize autonomous AI agents for real-world tasks and workflows.\nIntegrate LLMs, APIs, retrieval systems, and tool-use capabilities into agent pipelines.\nDevelop agent reasoning, planning, and multi-step task-execution logic.\nImplement monitoring, evaluation, and continuous improvement for agent reliability.\nWork with cross-functional teams to embed agents into products and operations.\nCreate scalable architectures for agent orchestration and multi-agent collaboration.\nEnsure data security, compliance, and performance efficiency across agent systems.\nResearch emerging frameworks to innovate and upgrade agentic capabilities."
   })
 
   const steps = [
-    { id: "template", title: "Template", icon: FileText },
     { id: "social", title: "Social Media", icon: Mail },
-    { id: "content", title: "Content", icon: Briefcase },
+    { id: "content", title: "AI Generation", icon: Briefcase },
     { id: "preview", title: "Preview", icon: CheckCircle }
   ]
 
   const handleNext = async () => {
-    // Validate template selection
-    if (currentStep === 0 && !cvData.selectedTemplate) {
-      alert("Please select a template before proceeding")
-      return
-    }
+    // Validate Step 0 (Social Media / Input) - now always uses professional template
+    if (currentStep === 0) {
+      console.log('🔍 Validating form data:', {
+        github: cvData.github,
+        linkedin: cvData.linkedin,
+        twitter: cvData.twitter,
+        selectedRepos: (cvData as any).selectedRepos,
+        githubRepo1: (cvData as any).githubRepo1,
+        githubRepo2: (cvData as any).githubRepo2,
+        githubRepo3: (cvData as any).githubRepo3,
+        jobDescription: (cvData as any).jobDescription?.substring(0, 50) + '...'
+      })
 
-    // Validate GitHub username (required field)
-    if (currentStep === 1 && !cvData.github.trim()) {
-      alert("GitHub Username is required")
-      return
+      // GitHub username is always required
+      if (!cvData.github.trim()) {
+        alert("GitHub Username is required")
+        return
+      }
+
+      // Validate required fields for AI-powered CV generation
+      const selectedReposCount = (cvData as any).selectedRepos?.length || 0
+      
+      // Also check if repos are selected via URL fields
+      const hasRepoUrls = Boolean(
+        (cvData as any).githubRepo1?.trim() && 
+        (cvData as any).githubRepo2?.trim() && 
+        (cvData as any).githubRepo3?.trim()
+      )
+      
+      console.log('🔍 Repo validation:', { selectedReposCount, hasRepoUrls })
+      
+      if (!cvData.linkedin || !cvData.linkedin.trim()) {
+        alert("LinkedIn Profile is required for AI-powered CV generation")
+        return
+      }
+      
+      if (!cvData.twitter || !cvData.twitter.trim()) {
+        alert("Twitter/X Handle is required for AI-powered CV generation")
+        return
+      }
+      
+      // Check either selectedRepos array OR individual repo URL fields
+      if (selectedReposCount !== 3 && !hasRepoUrls) {
+        alert("Please select exactly 3 GitHub repositories")
+        return
+      }
+      
+      if (!(cvData as any).jobDescription || !(cvData as any).jobDescription.trim()) {
+        alert("Job Description is required")
+        return
+      }
+
+      console.log('✅ Validation passed! Moving to next step')
     }
 
     setAnimationDirection("forward")
@@ -1177,27 +1987,18 @@ export default function CVGeneratorWizard() {
                   className="h-full"
                 >
                   {currentStep === 0 && (
-                    <TemplateSelector
-                      selectedTemplate={cvData.selectedTemplate}
-                      onChange={(templateId) => setCVData({ ...cvData, selectedTemplate: templateId })}
-                    />
-                  )}
-                  {currentStep === 1 && (
                     <SocialMediaStep
                       data={cvData}
                       onChange={(socialData) => setCVData({ ...cvData, ...socialData })}
                     />
                   )}
-                  {currentStep === 2 && (
-                    <RepositoryAndExperienceSelector
-                      selectedRepos={cvData.selectedRepos}
-                      selectedExperiences={cvData.selectedExperiences}
-                      onChange={(repos, experiences) => setCVData({ ...cvData, selectedRepos: repos, selectedExperiences: experiences })}
-                      githubUsername={cvData.github}
-                      linkedinUrl={cvData.linkedin}
+                  {currentStep === 1 && (
+                    <OpusCVGeneration
+                      data={cvData}
+                      onChange={setCVData}
                     />
                   )}
-                  {currentStep === 3 && (
+                  {currentStep === 2 && (
                     <CVPreview
                       data={cvData}
                       onChange={setCVData}
@@ -1244,7 +2045,6 @@ export default function CVGeneratorWizard() {
                   >
                     <Button 
                       onClick={handleNext}
-                      disabled={currentStep === 0 && !cvData.selectedTemplate}
                       className="transition-all hover:shadow-sm"
                     >
                       Next
@@ -1259,11 +2059,18 @@ export default function CVGeneratorWizard() {
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <Button asChild className="transition-all hover:shadow-sm">
-                      <Link href="/create-cv/editor">
-                        Edit in LaTeX
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Link>
+                    <Button 
+                      onClick={() => {
+                        // Save LaTeX code to localStorage for editor
+                        if (cvData.opusLatexCode) {
+                          localStorage.setItem('cvLatexCode', cvData.opusLatexCode)
+                        }
+                        window.location.href = '/create-cv/editor'
+                      }}
+                      className="transition-all hover:shadow-sm"
+                    >
+                      Edit in LaTeX
+                      <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </motion.div>
                 ) : null}

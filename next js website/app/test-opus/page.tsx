@@ -66,6 +66,7 @@ export default function OpusTestPage() {
         clearInterval(interval);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPolling, jobExecutionId, jobStatus]);
 
   // 0. Test API Connection
@@ -569,12 +570,12 @@ export default function OpusTestPage() {
             </div>
             <div className="ml-3">
               <p className="text-sm text-yellow-700">
-                <span className="font-semibold">Important:</span> If you see "Workflow is not active" error, you need to activate your workflow in the Opus dashboard:
+                <span className="font-semibold">Important:</span> If you see &ldquo;Workflow is not active&rdquo; error, you need to activate your workflow in the Opus dashboard:
               </p>
               <ol className="text-xs text-yellow-700 mt-2 ml-4 list-decimal space-y-1">
                 <li>Go to <a href="https://app.opus.com" target="_blank" rel="noopener noreferrer" className="underline font-medium">app.opus.com</a></li>
                 <li>Navigate to your workflow (ID: {workflowId})</li>
-                <li>Click the "Activate" or "Enable" button</li>
+                <li>Click the &ldquo;Activate&rdquo; or &ldquo;Enable&rdquo; button</li>
                 <li>Return here and try again</li>
               </ol>
             </div>

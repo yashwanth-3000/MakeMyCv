@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { ArrowRight, ChevronRight, Menu, X } from 'lucide-react'
+import { ArrowRight, Menu, X, Github } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AnimatedGroup } from '@/components/ui/animated-group'
 import { cn } from '@/lib/utils'
@@ -80,9 +80,11 @@ export function HeroSection() {
                             <div className="text-center sm:mx-auto lg:mr-auto lg:mt-0">
                                 <AnimatedGroup variants={transitionVariants}>
                                     <Link
-                                        href="#link"
+                                        href="https://opus.com"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         className="hover:bg-background dark:hover:border-t-border bg-muted group mx-auto flex w-fit items-center gap-4 rounded-full border p-1 pl-4 shadow-md shadow-black/5 transition-all duration-300 dark:border-t-white/5 dark:shadow-zinc-950">
-                                        <span className="text-foreground text-sm">Introducing AI-Powered CV Builder</span>
+                                        <span className="text-foreground text-sm">Built using Opus</span>
                                         <span className="dark:border-background block h-4 w-0.5 border-l bg-white dark:bg-zinc-700"></span>
 
                                         <div className="bg-background group-hover:bg-muted size-6 overflow-hidden rounded-full duration-500">
@@ -138,8 +140,9 @@ export function HeroSection() {
                                         size="lg"
                                         variant="ghost"
                                         className="h-10.5 rounded-xl px-5">
-                                        <Link href="#link">
-                                            <span className="text-nowrap">View Templates</span>
+                                        <Link href="https://github.com/yashwanth-3000/MakeMyCv" target="_blank" rel="noopener noreferrer">
+                                            <Github className="mr-2 h-4 w-4" />
+                                            <span className="text-nowrap">View on GitHub</span>
                                         </Link>
                                     </Button>
                                 </AnimatedGroup>
@@ -158,118 +161,29 @@ export function HeroSection() {
                                 },
                                 ...transitionVariants,
                             }}>
-                            <div className="relative -mr-56 mt-8 overflow-hidden px-2 sm:mr-0 sm:mt-12 md:mt-20">
+                            <div className="relative -mr-56 mt-4 overflow-hidden px-2 sm:mr-0 sm:mt-6 md:mt-8">
                                 <div
                                     aria-hidden
-                                    className="bg-gradient-to-b to-background absolute inset-0 z-10 from-transparent from-35%"
+                                    className="bg-gradient-to-b to-background absolute inset-0 z-10 from-transparent from-15% pointer-events-none"
                                 />
-                                <div className="inset-shadow-2xs ring-background dark:inset-shadow-white/20 bg-background relative mx-auto max-w-6xl overflow-hidden rounded-2xl border p-4 shadow-lg shadow-zinc-950/15 ring-1">
-                                    <img
-                                        className="bg-background aspect-15/8 relative hidden rounded-2xl dark:block"
-                                        src="https://tailark.com//_next/image?url=%2Fmail2.png&w=3840&q=75"
-                                        alt="app screen"
-                                        width="2700"
-                                        height="1440"
-                                    />
-                                    <img
-                                        className="z-2 border-border/25 aspect-15/8 relative rounded-2xl border dark:hidden"
-                                        src="https://tailark.com/_next/image?url=%2Fmail2-light.png&w=3840&q=75"
-                                        alt="app screen"
-                                        width="2700"
-                                        height="1440"
-                                    />
+                                <div className="inset-shadow-2xs ring-background dark:inset-shadow-white/20 bg-background relative z-20 mx-auto max-w-6xl overflow-hidden rounded-2xl border p-4 shadow-lg shadow-zinc-950/15 ring-1">
+                                    <Link 
+                                        href="https://app.opus.com/app/workflow/share/d4008810-26d3-4e7e-b85c-f076fb7cc10c"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block cursor-pointer transition-opacity hover:opacity-90 overflow-hidden rounded-2xl"
+                                    >
+                                        <img
+                                            className="relative rounded-2xl w-full h-auto -mt-12 md:-mt-16 lg:-mt-20"
+                                            src="/1-st-rev-rew.png"
+                                            alt="CV Workflow Preview"
+                                            width="2700"
+                                            height="1440"
+                                        />
+                                    </Link>
                                 </div>
                             </div>
                         </AnimatedGroup>
-                    </div>
-                </section>
-                <section className="bg-background pb-16 pt-16 md:pb-32">
-                    <div className="group relative m-auto max-w-5xl px-6">
-                        <div className="absolute inset-0 z-10 flex scale-95 items-center justify-center opacity-0 duration-500 group-hover:scale-100 group-hover:opacity-100">
-                            <Link
-                                href="/"
-                                className="block text-sm duration-150 hover:opacity-75">
-                                <span> Trusted by Professionals</span>
-
-                                <ChevronRight className="ml-1 inline-block size-3" />
-                            </Link>
-                        </div>
-                        <div className="group-hover:blur-xs mx-auto mt-12 grid max-w-2xl grid-cols-4 gap-x-12 gap-y-8 transition-all duration-500 group-hover:opacity-50 sm:gap-x-16 sm:gap-y-14">
-                            <div className="flex">
-                                <img
-                                    className="mx-auto h-5 w-fit dark:invert"
-                                    src="https://html.tailus.io/blocks/customers/nvidia.svg"
-                                    alt="Nvidia Logo"
-                                    height="20"
-                                    width="auto"
-                                />
-                            </div>
-
-                            <div className="flex">
-                                <img
-                                    className="mx-auto h-4 w-fit dark:invert"
-                                    src="https://html.tailus.io/blocks/customers/column.svg"
-                                    alt="Column Logo"
-                                    height="16"
-                                    width="auto"
-                                />
-                            </div>
-                            <div className="flex">
-                                <img
-                                    className="mx-auto h-4 w-fit dark:invert"
-                                    src="https://html.tailus.io/blocks/customers/github.svg"
-                                    alt="GitHub Logo"
-                                    height="16"
-                                    width="auto"
-                                />
-                            </div>
-                            <div className="flex">
-                                <img
-                                    className="mx-auto h-5 w-fit dark:invert"
-                                    src="https://html.tailus.io/blocks/customers/nike.svg"
-                                    alt="Nike Logo"
-                                    height="20"
-                                    width="auto"
-                                />
-                            </div>
-                            <div className="flex">
-                                <img
-                                    className="mx-auto h-5 w-fit dark:invert"
-                                    src="https://html.tailus.io/blocks/customers/lemonsqueezy.svg"
-                                    alt="Lemon Squeezy Logo"
-                                    height="20"
-                                    width="auto"
-                                />
-                            </div>
-                            <div className="flex">
-                                <img
-                                    className="mx-auto h-4 w-fit dark:invert"
-                                    src="https://html.tailus.io/blocks/customers/laravel.svg"
-                                    alt="Laravel Logo"
-                                    height="16"
-                                    width="auto"
-                                />
-                            </div>
-                            <div className="flex">
-                                <img
-                                    className="mx-auto h-7 w-fit dark:invert"
-                                    src="https://html.tailus.io/blocks/customers/lilly.svg"
-                                    alt="Lilly Logo"
-                                    height="28"
-                                    width="auto"
-                                />
-                            </div>
-
-                            <div className="flex">
-                                <img
-                                    className="mx-auto h-6 w-fit dark:invert"
-                                    src="https://html.tailus.io/blocks/customers/openai.svg"
-                                    alt="OpenAI Logo"
-                                    height="24"
-                                    width="auto"
-                                />
-                            </div>
-                        </div>
                     </div>
                 </section>
             </main>
@@ -278,10 +192,9 @@ export function HeroSection() {
 }
 
 const menuItems = [
-    { name: 'Features', href: '#link' },
-    { name: 'Solution', href: '#link' },
-    { name: 'Pricing', href: '#link' },
-    { name: 'About', href: '#link' },
+    { name: 'Create CV', href: '/create-cv' },
+    { name: 'lablab.ai', href: 'https://lablab.ai' },
+    { name: 'About', href: '/about' },
 ]
 
 const HeroHeader = () => {
@@ -350,27 +263,9 @@ const HeroHeader = () => {
                             <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
                                 <Button
                                     asChild
-                                    variant="outline"
-                                    size="sm"
-                                    className={cn(isScrolled && 'lg:hidden')}>
-                                    <Link href="#">
-                                        <span>Login</span>
-                                    </Link>
-                                </Button>
-                                <Button
-                                    asChild
-                                    size="sm"
-                                    className={cn(isScrolled && 'lg:hidden')}>
-                                    <Link href="#">
-                                        <span>Sign Up</span>
-                                    </Link>
-                                </Button>
-                                <Button
-                                    asChild
-                                    size="sm"
-                                    className={cn(isScrolled ? 'lg:inline-flex' : 'hidden')}>
-                                    <Link href="#">
-                                        <span>Get Started</span>
+                                    size="sm">
+                                    <Link href="/create-cv">
+                                        <span>Create CV</span>
                                     </Link>
                                 </Button>
                             </div>
@@ -389,31 +284,16 @@ const Logo = ({ className }: { className?: string }) => {
                 viewBox="0 0 32 32"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-8 w-8">
-                <rect width="32" height="32" rx="8" fill="url(#logo-gradient)" />
+                className="h-5 w-5">
+                <rect width="32" height="32" rx="8" fill="currentColor" className="opacity-10" />
                 <path
                     d="M8 12h16M8 16h16M8 20h12"
-                    stroke="white"
+                    stroke="currentColor"
                     strokeWidth="2"
                     strokeLinecap="round"
                 />
-                <defs>
-                    <linearGradient
-                        id="logo-gradient"
-                        x1="16"
-                        y1="0"
-                        x2="16"
-                        y2="32"
-                        gradientUnits="userSpaceOnUse">
-                        <stop stopColor="#9B99FE" />
-                        <stop
-                            offset="1"
-                            stopColor="#2BC8B7"
-                        />
-                    </linearGradient>
-                </defs>
             </svg>
-            <span className="text-xl font-bold bg-gradient-to-r from-[#9B99FE] to-[#2BC8B7] bg-clip-text text-transparent">
+            <span className="text-lg font-bold text-foreground">
                 MakeMyCv
             </span>
         </div>
