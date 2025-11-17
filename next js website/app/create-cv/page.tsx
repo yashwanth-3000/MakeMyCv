@@ -4,12 +4,15 @@ import * as React from "react"
 import { useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import Link from "next/link"
-import { Check, Download, Loader2, CheckCircle, Github, Linkedin, Twitter, Mail, Globe, ArrowRight, ArrowLeft, Edit2, FileText, Plus, Briefcase, X, AlertCircle, Star } from "lucide-react"
+import * as TabsPrimitive from "@radix-ui/react-tabs"
+import * as AccordionPrimitive from "@radix-ui/react-accordion"
+import { Check, Download, Loader2, CheckCircle, Github, Linkedin, Twitter, Mail, Globe, ArrowRight, ArrowLeft, Edit2, FileText, Plus, Briefcase, X, AlertCircle, Star, Clock, Activity, Zap, TrendingUp, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import { Navbar } from "@/components/navbar"
 import { cn } from "@/lib/utils"
 
@@ -52,6 +55,470 @@ interface CVData extends SocialMediaData {
   opusJobId?: string
   opusLatexCode?: string
   opusGeneratedCV?: any
+}
+
+// Tabs Components
+const Tabs = TabsPrimitive.Root
+
+const TabsList = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.List>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.List
+    ref={ref}
+    className={cn(
+      "inline-flex items-center justify-center rounded-lg bg-muted p-0.5 text-muted-foreground/70",
+      className
+    )}
+    {...props}
+  />
+))
+TabsList.displayName = TabsPrimitive.List.displayName
+
+const TabsTrigger = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium outline-offset-2 transition-all hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring/70 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+      className
+    )}
+    {...props}
+  />
+))
+TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
+
+const TabsContent = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Content
+    ref={ref}
+    className={cn(
+      "mt-2 outline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring/70",
+      className
+    )}
+    {...props}
+  />
+))
+TabsContent.displayName = TabsPrimitive.Content.displayName
+
+// Accordion Components
+const Accordion = AccordionPrimitive.Root
+
+const AccordionItem = React.forwardRef<
+  React.ElementRef<typeof AccordionPrimitive.Item>,
+  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
+>(({ className, ...props }, ref) => (
+  <AccordionPrimitive.Item
+    ref={ref}
+    className={cn("border-b last:border-b-0", className)}
+    {...props}
+  />
+))
+AccordionItem.displayName = "AccordionItem"
+
+const AccordionTrigger = React.forwardRef<
+  React.ElementRef<typeof AccordionPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
+>(({ className, children, ...props }, ref) => (
+  <AccordionPrimitive.Header className="flex">
+    <AccordionPrimitive.Trigger
+      ref={ref}
+      className={cn(
+        "flex flex-1 items-start justify-between gap-4 rounded-md py-4 text-left text-sm font-medium transition-all outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&[data-state=open]>svg]:rotate-180",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0 transition-transform duration-200" />
+    </AccordionPrimitive.Trigger>
+  </AccordionPrimitive.Header>
+))
+AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName
+
+const AccordionContent = React.forwardRef<
+  React.ElementRef<typeof AccordionPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
+  <AccordionPrimitive.Content
+    ref={ref}
+    className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+    {...props}
+  >
+    <div className={cn("pt-0 pb-4", className)}>{children}</div>
+  </AccordionPrimitive.Content>
+))
+AccordionContent.displayName = AccordionPrimitive.Content.displayName
+
+// Workflow Audit Viewer Component
+function WorkflowAuditViewer({ auditLog }: { auditLog: any }) {
+  const [expandedNode, setExpandedNode] = React.useState<string>('')
+
+  // Transform audit log data to node executions
+  const getNodeExecutions = () => {
+    if (!auditLog?.audit?.nodes_execution_data) return []
+    
+    return Object.entries(auditLog.audit.nodes_execution_data).map(([nodeName, nodeData]: [string, any]) => ({
+      id: nodeName,
+      name: nodeName,
+      status: nodeData.execution_status === 'COMPLETED' ? 'success' : 'failed',
+      startTime: new Date(nodeData.execution_start_time).toISOString(),
+      duration: nodeData.execution_time || 0,
+      output: nodeData.execution_output,
+      executionIndex: nodeData.execution_index
+    })).sort((a, b) => a.executionIndex - b.executionIndex)
+  }
+
+  const nodeExecutions = getNodeExecutions()
+  const stats = {
+    totalNodes: auditLog?.nb_nodes || 0,
+    executedNodes: auditLog?.nb_executed_nodes || 0,
+    failedNodes: auditLog?.nb_failed_nodes || 0,
+    totalDuration: nodeExecutions.reduce((sum, node) => sum + node.duration, 0)
+  }
+
+  const getStatusIcon = (status: string) => {
+    return status === 'success' ? (
+      <CheckCircle className="w-5 h-5 text-green-500" />
+    ) : (
+      <X className="w-5 h-5 text-red-500" />
+    )
+  }
+
+  const formatDuration = (ms: number) => {
+    if (ms < 1000) return `${ms}ms`
+    return `${(ms / 1000).toFixed(2)}s`
+  }
+
+  const formatTime = (isoString: string) => {
+    const date = new Date(isoString)
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  }
+
+  return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="space-y-6"
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <TrendingUp className="h-6 w-6 text-green-600" />
+        <h3 className="text-2xl font-bold text-foreground">Workflow Execution Audit</h3>
+      </div>
+
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1 }}
+          className="p-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg text-white"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-blue-100 text-sm font-medium">Total Nodes</p>
+              <p className="text-3xl font-bold mt-2">{stats.totalNodes}</p>
+            </div>
+            <Activity className="w-10 h-10 text-blue-200" />
+          </div>
+                </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="p-6 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg text-white"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-sm font-medium">Executed</p>
+              <p className="text-3xl font-bold mt-2">{stats.executedNodes}</p>
+            </div>
+            <CheckCircle className="w-10 h-10 text-green-200" />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.3 }}
+          className="p-6 bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg text-white"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-red-100 text-sm font-medium">Failed</p>
+              <p className="text-3xl font-bold mt-2">{stats.failedNodes}</p>
+            </div>
+            <X className="w-10 h-10 text-red-200" />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.4 }}
+          className="p-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg text-white"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm font-medium">Duration</p>
+              <p className="text-3xl font-bold mt-2">{formatDuration(stats.totalDuration)}</p>
+            </div>
+            <Zap className="w-10 h-10 text-purple-200" />
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Execution Timeline */}
+      <div className="bg-white border rounded-xl p-6 shadow-sm">
+        <h4 className="text-lg font-semibold mb-6 flex items-center gap-2">
+          <Clock className="h-5 w-5 text-primary" />
+          Execution Timeline
+        </h4>
+
+        <div className="space-y-4">
+          {nodeExecutions.map((execution, index) => (
+            <div key={execution.id} className="relative">
+              {/* Timeline Line */}
+              {index < nodeExecutions.length - 1 && (
+                <div className="absolute left-[21px] top-12 w-0.5 h-full bg-gradient-to-b from-green-500/50 to-green-500/20" />
+              )}
+
+              {/* Timeline Node */}
+              <div className="flex gap-4">
+                <div className="relative z-10 mt-1">
+                  <div className="w-11 h-11 rounded-full bg-background border-2 border-green-500/30 flex items-center justify-center shadow-lg">
+                    {getStatusIcon(execution.status)}
+              </div>
+            </div>
+
+                <div className="flex-1">
+                  <div className="p-4 bg-white border rounded-lg hover:border-green-500/30 hover:shadow-md transition-all duration-300">
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h5 className="text-base font-semibold text-foreground">{execution.name}</h5>
+                          <Badge className="bg-green-500/10 text-green-600 border-green-500/20 hover:bg-green-500/20">
+                            {execution.status}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-4 h-4" />
+                            {formatTime(execution.startTime)}
+                          </span>
+                          <span className="flex items-center gap-1 font-medium text-green-600">
+                            <Zap className="w-4 h-4" />
+                            {formatDuration(execution.duration)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expandable Details */}
+                    {execution.output && (
+                      <Accordion type="single" collapsible value={expandedNode} onValueChange={setExpandedNode}>
+                        <AccordionItem value={execution.id} className="border-0">
+                          <AccordionTrigger className="text-sm text-blue-600 hover:text-blue-700 py-2">
+                            View Output Details
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg mt-2">
+                              <pre className="text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap">
+                                {JSON.stringify(execution.output, null, 2)}
+                              </pre>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Summary Footer */}
+      <div className="p-6 bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-xl">
+        <div className="flex items-center justify-between">
+              <div>
+            <p className="text-sm text-muted-foreground">Success Rate</p>
+            <p className="text-2xl font-bold text-foreground">
+              {stats.executedNodes > 0
+                ? (((stats.executedNodes - stats.failedNodes) / stats.executedNodes) * 100).toFixed(1)
+                : '0.0'}%
+                </p>
+              </div>
+          <div className="text-right">
+            <p className="text-sm text-muted-foreground">Avg Node Duration</p>
+            <p className="text-2xl font-bold text-foreground">
+              {stats.executedNodes > 0 ? formatDuration(stats.totalDuration / stats.executedNodes) : '0ms'}
+            </p>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// Interactive Project Info Component
+function ProjectTabs({ 
+  youtubeVideoId = "dQw4w9WgXcQ",
+  progress = 0
+}: { 
+  youtubeVideoId?: string
+  progress?: number
+}) {
+  const [activeTab, setActiveTab] = React.useState("about")
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.3 }}
+      className="mt-8"
+    >
+      <div className="text-center space-y-3 mb-6">
+        <h3 className="text-xl font-semibold text-foreground">
+          While you wait...
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Learn more about our project or watch a demo video
+        </p>
+      </div>
+
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full"
+      >
+        <div className="flex justify-center mb-6">
+          <TabsList className="inline-flex items-center gap-2 bg-gray-50 backdrop-blur-md p-1.5 rounded-xl border border-border shadow-sm">
+            <TabsTrigger
+              value="about"
+                  className={cn(
+                "relative px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300",
+                "hover:bg-gray-100",
+                activeTab === "about" && "bg-white text-foreground shadow-sm"
+              )}
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Learn About Project
+              </span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="video"
+              className={cn(
+                "relative px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300",
+                "hover:bg-gray-100",
+                activeTab === "video" && "bg-white text-foreground shadow-sm"
+              )}
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                Watch Demo Video
+              </span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <div className="relative min-h-[500px]">
+          <AnimatePresence mode="wait">
+            {activeTab === "about" && (
+              <motion.div
+                key="about"
+                initial={{ opacity: 0, x: 20, filter: "blur(4px)" }}
+                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, x: -20, filter: "blur(4px)" }}
+                transition={{
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 25,
+                }}
+                className="absolute inset-0"
+              >
+                <TabsContent value="about" className="m-0">
+                  <div className="rounded-2xl overflow-hidden shadow-xl border border-border bg-white hover:shadow-2xl transition-shadow duration-300">
+                    <iframe
+                      src="/about"
+                      className="w-full h-[500px] border-0"
+                      title="About Page"
+                      loading="lazy"
+                    />
+              </div>
+                </TabsContent>
+              </motion.div>
+            )}
+
+            {activeTab === "video" && (
+              <motion.div
+                key="video"
+                initial={{ opacity: 0, x: 20, filter: "blur(4px)" }}
+                animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                exit={{ opacity: 0, x: -20, filter: "blur(4px)" }}
+                transition={{
+                  type: "spring",
+                  stiffness: 200,
+                  damping: 25,
+                }}
+                className="absolute inset-0"
+              >
+                <TabsContent value="video" className="m-0">
+                  <div className="rounded-2xl overflow-hidden shadow-xl border border-border bg-black hover:shadow-2xl transition-shadow duration-300">
+                    <div className="relative w-full aspect-video">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=0&rel=0`}
+                        className="absolute inset-0 w-full h-full"
+                        title="Project Video"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+            </div>
+                  </div>
+                </TabsContent>
+          </motion.div>
+            )}
+          </AnimatePresence>
+      </div>
+      </Tabs>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.5 }}
+        className="flex items-center justify-center gap-2 text-sm text-muted-foreground mt-6"
+      >
+        <div className="flex gap-1">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ repeat: Infinity, duration: 1, delay: 0 }}
+            className="w-2 h-2 rounded-full bg-blue-600"
+          />
+          <motion.div
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ repeat: Infinity, duration: 1, delay: 0.2 }}
+            className="w-2 h-2 rounded-full bg-blue-600"
+          />
+          <motion.div
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ repeat: Infinity, duration: 1, delay: 0.4 }}
+            className="w-2 h-2 rounded-full bg-blue-600"
+          />
+        </div>
+        <span>Your CV is being generated... {Math.round(progress)}%</span>
+      </motion.div>
+    </motion.div>
+  )
 }
 
 // Step 1: Social Media Input Form
@@ -471,21 +938,21 @@ function OpusCVGeneration({
 
       addLog('✅ Workflow execution started successfully')
 
-      // Step 5: Poll for completion (auto-poll every 10 seconds for 3 minutes)
+      // Step 5: Poll for completion (no timeout - will poll until job completes or fails)
       setProgress(50)
       setStatusMessage('Processing...')
-      addLog('⏳ Polling for completion (this may take 1-3 minutes)...')
+      addLog('⏳ Polling for completion (no timeout - waiting for job to complete)...')
       
       let completed = false
       let attempts = 0
-      const maxAttempts = 18 // 3 minutes (10 seconds * 18)
       const startTime = Date.now()
 
-      while (!completed && attempts < maxAttempts) {
+      while (!completed) {
         await new Promise(resolve => setTimeout(resolve, 10000)) // Poll every 10 seconds
         attempts++
         
-        const progressPercent = 50 + (attempts / maxAttempts) * 40
+        // Progress increases slowly but never reaches 100 until actually complete
+        const progressPercent = 50 + Math.min(40, (attempts * 2))
         setProgress(Math.min(90, progressPercent))
         
         // Calculate elapsed time
@@ -496,7 +963,7 @@ function OpusCVGeneration({
         
         try {
           // Try to get job status - handle transient API failures gracefully
-          const statusResponse = await fetch(`/api/opus/job/${jobExecutionId}/status`)
+        const statusResponse = await fetch(`/api/opus/job/${jobExecutionId}/status`)
           
           if (!statusResponse.ok) {
             // API call failed, but don't stop - log and continue polling
@@ -505,16 +972,16 @@ function OpusCVGeneration({
             continue // Skip to next iteration
           }
           
-          const { status: jobStatus } = await statusResponse.json()
-          
-          setStatusMessage(`Processing... (${timeString}) - Status: ${jobStatus}`)
+        const { status: jobStatus } = await statusResponse.json()
+        
+        setStatusMessage(`Processing... (${timeString}) - Status: ${jobStatus}`)
           addLog(`⏳ Job status check #${attempts}: ${jobStatus} (${timeString} elapsed)`)
 
           // Only stop on definitive status from the workflow
-          if (jobStatus === 'COMPLETED') {
-            completed = true
+        if (jobStatus === 'COMPLETED') {
+          completed = true
             addLog('🎉 Job completed successfully!')
-          } else if (jobStatus === 'FAILED') {
+        } else if (jobStatus === 'FAILED') {
             // Job explicitly failed - this is the only real failure
             addLog('❌ Workflow execution returned FAILED status')
             
@@ -543,11 +1010,6 @@ function OpusCVGeneration({
           setStatusMessage(`Processing... (${timeString}) - Connection issue, retrying...`)
           // Continue polling - don't give up on transient errors
         }
-      }
-
-      if (!completed) {
-        addLog('⏰ Job execution timed out after 3 minutes')
-        throw new Error('Job execution timed out after 3 minutes. The workflow may still be running.')
       }
 
       // Step 6: Get results
@@ -678,30 +1140,43 @@ function OpusCVGeneration({
   }, [])
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground mb-1">AI is Generating Your CV</h2>
-        <p className="text-sm text-muted-foreground">
+    <div className="w-full space-y-8 pb-8">
+      {/* Header Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="text-center space-y-2"
+      >
+        <h2 className="text-3xl font-bold text-foreground">AI is Generating Your CV</h2>
+        <p className="text-base text-muted-foreground">
           Please wait while our AI analyzes your profiles and creates a professional CV
         </p>
-      </div>
+      </motion.div>
 
-      {/* Progress Card */}
-      <div className="bg-white border rounded-lg p-6 shadow-sm">
-        <div className="space-y-4">
+      {/* Main Content Container */}
+      <div className="space-y-6 w-full">
+        {/* Progress Card - Primary Focus */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          <div className="bg-white border rounded-xl p-8 shadow-md">
+            <div className="space-y-6">
           {/* Progress Bar */}
-          <div className="space-y-2">
+              <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-foreground">{statusMessage}</span>
-              <span className="text-sm font-medium text-foreground">{Math.round(progress)}%</span>
+                  <span className="text-base font-semibold text-foreground">{statusMessage}</span>
+                  <span className="text-base font-bold text-foreground">{Math.round(progress)}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
               <motion.div
                 className={cn(
-                  "h-full rounded-full",
-                  status === 'completed' ? 'bg-green-500' :
-                  status === 'failed' ? 'bg-red-500' :
-                  'bg-blue-500'
+                      "h-full rounded-full shadow-sm",
+                      status === 'completed' ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                      status === 'failed' ? 'bg-gradient-to-r from-red-500 to-red-600' :
+                      'bg-gradient-to-r from-blue-500 to-blue-600'
                 )}
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
@@ -711,165 +1186,163 @@ function OpusCVGeneration({
           </div>
 
           {/* Status Icon */}
-          <div className="flex items-center justify-center py-8">
+              <div className="flex items-center justify-center py-10">
             {status === 'generating' && (
-              <Loader2 className="h-16 w-16 animate-spin text-blue-600" />
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Loader2 className="h-20 w-20 text-blue-600" />
+                  </motion.div>
             )}
             {status === 'completed' && (
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 15 }}
               >
-                <CheckCircle className="h-16 w-16 text-green-600" />
+                    <CheckCircle className="h-20 w-20 text-green-600" />
               </motion.div>
             )}
             {status === 'failed' && (
-              <AlertCircle className="h-16 w-16 text-red-600" />
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                  >
+                    <AlertCircle className="h-20 w-20 text-red-600" />
+                  </motion.div>
             )}
           </div>
 
           {/* Status Message */}
           <div className="text-center">
             {status === 'generating' && (
-              <p className="text-sm text-muted-foreground">
-                This usually takes about 2 minutes. Please don&apos;t close this window.
+                  <p className="text-base text-muted-foreground">
+                    This usually takes about 3 minutes. Please wait...
               </p>
             )}
             {status === 'completed' && (
-              <p className="text-sm text-green-600 font-medium">
-                Your professional CV has been generated! Click Next to view and edit it.
+                  <div className="space-y-2">
+                    <p className="text-lg text-green-600 font-semibold">
+                      ✨ Your professional CV has been generated!
               </p>
+                    <p className="text-sm text-muted-foreground">
+                      Click Next to view and edit it
+                    </p>
+                  </div>
             )}
             {status === 'failed' && error && (
-              <div className="space-y-2">
-                <p className="text-sm text-red-600 font-medium">{error}</p>
-                <Button onClick={generateCV} variant="outline" size="sm">
-                  Retry
+                  <div className="space-y-3">
+                    <p className="text-base text-red-600 font-semibold">{error}</p>
+                    <Button onClick={generateCV} variant="outline" size="default" className="mt-2">
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                      Retry Generation
                 </Button>
               </div>
             )}
           </div>
         </div>
       </div>
+        </motion.div>
 
-      {/* Real-Time Activity Logs */}
-      {logs.length > 0 && (
-        <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
-          <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-muted-foreground" />
-              <h3 className="text-lg font-semibold text-foreground">Real-Time Activity Log</h3>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setLogs([])}
-            >
-              Clear
-            </Button>
-          </div>
-          <div className="bg-gray-900 text-green-400 p-4 font-mono text-xs max-h-64 overflow-y-auto">
-            {logs.map((log, idx) => (
-              <div key={idx} className="mb-1 whitespace-pre-wrap break-all">{log}</div>
-            ))}
-            {logs.length === 0 && (
-              <div className="text-gray-500">No activity yet...</div>
-            )}
-          </div>
-        </div>
-      )}
+        {/* Interactive Content - While Generating */}
+        {status === 'generating' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <ProjectTabs youtubeVideoId="dQw4w9WgXcQ" progress={progress} />
+          </motion.div>
+        )}
 
-      {/* Audit Log Display */}
-      {auditLog && status === 'completed' && (
-        <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
-          <div className="p-4 border-b bg-gray-50">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <h3 className="text-lg font-semibold text-foreground">Workflow Execution Audit</h3>
-            </div>
-          </div>
-          <div className="p-6 space-y-4">
-            {/* Execution Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p className="text-xs text-gray-600 mb-1">Total Nodes</p>
-                <p className="text-2xl font-bold text-blue-600">{auditLog.nb_nodes || 0}</p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <p className="text-xs text-gray-600 mb-1">Executed</p>
-                <p className="text-2xl font-bold text-green-600">{auditLog.nb_executed_nodes || 0}</p>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <p className="text-xs text-gray-600 mb-1">Remaining</p>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {auditLog.remaining_nodes_to_execute?.length || 0}
-                </p>
-              </div>
-              <div className="bg-red-50 p-4 rounded-lg">
-                <p className="text-xs text-gray-600 mb-1">Failed</p>
-                <p className="text-2xl font-bold text-red-600">{auditLog.nb_failed_nodes || 0}</p>
-              </div>
-            </div>
-
-            {/* Executed Nodes */}
-            {auditLog.executed_nodes && auditLog.executed_nodes.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  Executed Nodes ({auditLog.executed_nodes.length})
-                </h4>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {auditLog.executed_nodes.map((node: string, idx: number) => (
-                    <div key={idx} className="flex items-center space-x-2 bg-green-50 p-2 rounded text-xs">
-                      <span className="text-green-600">✓</span>
-                      <span className="text-gray-700">{node}</span>
-                    </div>
-                  ))}
+        {/* Real-Time Activity Logs - While Generating/Failed */}
+        {logs.length > 0 && status !== 'completed' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+          >
+            <div className="bg-white border rounded-xl shadow-md overflow-hidden">
+              <div className="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-lg shadow-sm">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">Real-Time Activity Log</h3>
+                    <p className="text-xs text-muted-foreground">Live workflow execution updates</p>
+                  </div>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setLogs([])}
+                  className="hover:bg-white"
+                >
+                  Clear
+                </Button>
               </div>
-            )}
-
-            {/* Failed Nodes */}
-            {auditLog.failed_nodes && auditLog.failed_nodes.length > 0 && (
-              <div>
-                <h4 className="text-sm font-semibold mb-3 text-red-600 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Failed Nodes ({auditLog.failed_nodes.length})
-                </h4>
-                <div className="space-y-2">
-                  {auditLog.failed_nodes.map((node: string, idx: number) => (
-                    <div key={idx} className="flex items-center space-x-2 bg-red-50 p-2 rounded text-xs">
-                      <span className="text-red-600">✗</span>
-                      <span className="text-gray-700">{node}</span>
-                    </div>
-                  ))}
-                </div>
+              <div className="bg-gray-900 text-green-400 p-6 font-mono text-xs">
+                {logs.map((log, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="mb-1.5 whitespace-pre-wrap break-all"
+                  >
+                    {log}
+                  </motion.div>
+                ))}
+                {logs.length === 0 && (
+                  <div className="text-gray-500 text-center py-4">No activity yet...</div>
+                )}
               </div>
-            )}
+            </div>
+          </motion.div>
+        )}
 
-            {/* View Full Audit Data */}
-            <details className="mt-4">
-              <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800 font-medium">
-                View Full Audit Data
-              </summary>
-              <div className="bg-gray-100 p-4 rounded overflow-x-auto mt-2">
-                <pre className="text-xs">{JSON.stringify(auditLog, null, 2)}</pre>
-              </div>
-            </details>
-          </div>
-        </div>
-      )}
+        {/* Workflow Execution Audit - After Completion */}
+        {auditLog && status === 'completed' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <WorkflowAuditViewer auditLog={auditLog} />
+          </motion.div>
+        )}
 
-      {/* LaTeX Preview (if completed) */}
+        {/* LaTeX Code Preview - After Completion */}
       {status === 'completed' && data.opusLatexCode && (
-        <div className="bg-white border rounded-lg p-6 shadow-sm">
-          <h3 className="text-lg font-semibold mb-3">Generated LaTeX Code</h3>
-          <div className="bg-gray-50 p-4 rounded max-h-96 overflow-auto">
-            <pre className="text-xs font-mono">{data.opusLatexCode}</pre>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <div className="bg-white border rounded-xl shadow-md overflow-hidden">
+              <div className="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-lg shadow-sm">
+                    <FileText className="h-5 w-5 text-purple-600" />
           </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">Generated LaTeX Code</h3>
+                    <p className="text-xs text-muted-foreground">Raw LaTeX source for your CV</p>
         </div>
-      )}
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 max-h-96 overflow-auto">
+                  <pre className="text-xs font-mono text-gray-800">{data.opusLatexCode}</pre>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
     </div>
   )
 }
@@ -1851,7 +2324,7 @@ export default function CVGeneratorWizard() {
       }
 
       // Validate required fields for AI-powered CV generation
-      const selectedReposCount = (cvData as any).selectedRepos?.length || 0
+        const selectedReposCount = (cvData as any).selectedRepos?.length || 0
       
       // Also check if repos are selected via URL fields
       const hasRepoUrls = Boolean(
@@ -1861,27 +2334,27 @@ export default function CVGeneratorWizard() {
       )
       
       console.log('🔍 Repo validation:', { selectedReposCount, hasRepoUrls })
-      
-      if (!cvData.linkedin || !cvData.linkedin.trim()) {
-        alert("LinkedIn Profile is required for AI-powered CV generation")
-        return
-      }
-      
-      if (!cvData.twitter || !cvData.twitter.trim()) {
-        alert("Twitter/X Handle is required for AI-powered CV generation")
-        return
-      }
-      
+        
+        if (!cvData.linkedin || !cvData.linkedin.trim()) {
+          alert("LinkedIn Profile is required for AI-powered CV generation")
+          return
+        }
+        
+        if (!cvData.twitter || !cvData.twitter.trim()) {
+          alert("Twitter/X Handle is required for AI-powered CV generation")
+          return
+        }
+        
       // Check either selectedRepos array OR individual repo URL fields
       if (selectedReposCount !== 3 && !hasRepoUrls) {
-        alert("Please select exactly 3 GitHub repositories")
-        return
-      }
-      
-      if (!(cvData as any).jobDescription || !(cvData as any).jobDescription.trim()) {
-        alert("Job Description is required")
-        return
-      }
+          alert("Please select exactly 3 GitHub repositories")
+          return
+        }
+        
+        if (!(cvData as any).jobDescription || !(cvData as any).jobDescription.trim()) {
+          alert("Job Description is required")
+          return
+        }
 
       console.log('✅ Validation passed! Moving to next step')
     }
@@ -1903,7 +2376,7 @@ export default function CVGeneratorWizard() {
     <>
       <Navbar />
       <div className="min-h-screen bg-white text-foreground pt-16">
-        <div className="h-[calc(100vh-4rem)] flex flex-col">
+        <div className="flex flex-col">
           {/* Header with Progress Stepper */}
           <div className="border-b border-gray-100 bg-white sticky top-16 z-10 flex-shrink-0">
             <div className="max-w-5xl mx-auto px-8 py-6">
@@ -1975,8 +2448,8 @@ export default function CVGeneratorWizard() {
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 overflow-hidden py-6">
-            <div className="max-w-5xl mx-auto h-full overflow-auto px-8">
+          <div className="flex-1 py-6">
+            <div className="max-w-5xl mx-auto px-8">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentStep}
@@ -1984,7 +2457,6 @@ export default function CVGeneratorWizard() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="h-full"
                 >
                   {currentStep === 0 && (
                     <SocialMediaStep
@@ -1993,10 +2465,10 @@ export default function CVGeneratorWizard() {
                     />
                   )}
                   {currentStep === 1 && (
-                    <OpusCVGeneration
-                      data={cvData}
-                      onChange={setCVData}
-                    />
+                      <OpusCVGeneration
+                        data={cvData}
+                        onChange={setCVData}
+                      />
                   )}
                   {currentStep === 2 && (
                     <CVPreview
