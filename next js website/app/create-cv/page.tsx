@@ -1933,6 +1933,7 @@ function CVPreview({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [compiling, setCompiling] = useState(false)
   const [compilationError, setCompilationError] = useState<string | null>(null)
+  const [showTimeoutMessage, setShowTimeoutMessage] = useState(false)
 
   // Auto-compile LaTeX when available
   React.useEffect(() => {
@@ -1942,11 +1943,32 @@ function CVPreview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.opusLatexCode])
 
+  // Show timeout message after 15 seconds of compilation
+  React.useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null
+    
+    if (compiling && !pdfUrl) {
+      setShowTimeoutMessage(false)
+      timeoutId = setTimeout(() => {
+        setShowTimeoutMessage(true)
+      }, 15000) // 15 seconds
+    } else {
+      setShowTimeoutMessage(false)
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [compiling, pdfUrl])
+
   const handleCompileLatex = async () => {
     if (!data.opusLatexCode) return
 
     setCompiling(true)
     setCompilationError(null)
+    setShowTimeoutMessage(false)
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -1973,6 +1995,7 @@ function CVPreview({
       }
       
       setPdfUrl(url)
+      setShowTimeoutMessage(false)
     } catch (error) {
       console.error('Compilation error:', error)
       setCompilationError(error instanceof Error ? error.message : 'Unknown error occurred')
@@ -2209,9 +2232,35 @@ function CVPreview({
               />
             ) : compiling ? (
               <div className="h-full flex items-center justify-center">
-                <div className="text-center">
+                <div className="text-center max-w-md px-8">
                   <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Compiling your CV...</p>
+                  <p className="text-sm text-muted-foreground mb-4">Compiling your CV...</p>
+                  {showTimeoutMessage && (
+                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800 mb-3">
+                        Compilation is taking longer than expected.
+                      </p>
+                      <Link href="/create-cv/editor">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="gap-2"
+                          onClick={() => {
+                            // Save the LaTeX code to localStorage so it can be loaded in the editor
+                            if (data.opusLatexCode) {
+                              localStorage.setItem('cvLatexCode', data.opusLatexCode)
+                            }
+                          }}
+                        >
+                          <FileText className="h-4 w-4" />
+                          Edit in LaTeX Editor
+                        </Button>
+                      </Link>
+                      <p className="text-xs text-yellow-700 mt-2">
+                        You can view and edit the PDF in the LaTeX editor
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

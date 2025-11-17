@@ -53,7 +53,7 @@ export default function AboutPage() {
                         <section>
                             <h2 className="text-xl font-bold mb-4">The Challenge</h2>
                             <p className="mb-4">
-                                Build a reusable "Intake → Understand → Decide → Review → Deliver" automation that tackles the common 
+                                Build a reusable &ldquo;Intake → Understand → Decide → Review → Deliver&rdquo; automation that tackles the common 
                                 pain points of creating professional resumes using AI-native workflows.
                             </p>
                             
@@ -74,7 +74,7 @@ export default function AboutPage() {
                             <p className="mb-2 ml-4"><strong>No Built-in Audit Trail:</strong></p>
                             <p className="mb-4 ml-8">
                                 Without tracking what content was used, which projects were highlighted, or why certain experiences were 
-                                prioritized, it's hard to iterate and improve CV versions.
+                                prioritized, it&apos;s hard to iterate and improve CV versions.
                             </p>
                         </section>
 
@@ -82,9 +82,9 @@ export default function AboutPage() {
                         <section>
                             <h2 className="text-xl font-bold mb-4">What We Built</h2>
                             <p className="mb-4">
-                                A professional CV maker powered by Opus AI workflows. We've built three separate Opus workflows, 
+                                A professional CV maker powered by Opus AI workflows. We&apos;ve built three separate Opus workflows, 
                                 one for each template type (Professional, Academic, Creative), each handling the complete 
-                                "Intake → Understand → Decide → Review → Deliver" pipeline.
+                                &ldquo;Intake → Understand → Decide → Review → Deliver&rdquo; pipeline.
                             </p>
                             
                             <h3 className="text-lg font-semibold mb-2">Three Independent Opus Workflows:</h3>
@@ -220,7 +220,7 @@ export default function AboutPage() {
                             </ul>
                             
                             <p className="mb-4 ml-4">
-                                Both review workflows (Agentic and Human) are mentioned in the "What We Built" section above 
+                                Both review workflows (Agentic and Human) are mentioned in the &ldquo;What We Built&rdquo; section above 
                                 and are available as standalone workflows on Opus for integration into other projects.
                             </p>
 
@@ -390,7 +390,7 @@ export default function AboutPage() {
                             <div className="bg-zinc-100 p-4 rounded mb-4 ml-4">
                                 <p className="mb-1">→ Download PDF button → Trigger compilation + browser download</p>
                                 <p className="mb-1">→ Download .tex button → Export LaTeX source file</p>
-                                <p className="mb-1">→ "Edit in LaTeX" → Transfer to live editor page</p>
+                                <p className="mb-1">→ &ldquo;Edit in LaTeX&rdquo; → Transfer to live editor page</p>
                                 <p className="mb-1">→ Editor page: Split view with LaTeX code + PDF preview</p>
                                 <p className="mb-1">→ Real-time editing with manual recompile button</p>
                                 <p>→ LocalStorage preservation of LaTeX for session continuity</p>
@@ -434,7 +434,7 @@ export default function AboutPage() {
                                 <p>• <strong>Typical performance: 90s sequential → 30-40s parallel</strong></p>
                             </div>
                             <p className="mb-4 ml-4">
-                                This parallel processing approach ensures that independent workflow steps don't block each other, 
+                                This parallel processing approach ensures that independent workflow steps don&apos;t block each other, 
                                 maximizing throughput and minimizing user wait time.
                             </p>
 
@@ -465,7 +465,7 @@ export default function AboutPage() {
 
                         {/* What We're Proud Of */}
                         <section>
-                            <h2 className="text-xl font-bold mb-4">What We're Proud Of</h2>
+                            <h2 className="text-xl font-bold mb-4">What We&apos;re Proud Of</h2>
                             
                             <h3 className="text-lg font-semibold mb-2">1. Seamless Opus Integration</h3>
                             <p className="mb-4 ml-4">
@@ -518,14 +518,14 @@ export default function AboutPage() {
 
                         {/* Challenges & Limitations */}
                         <section>
-                            <h2 className="text-xl font-bold mb-4">What We Wanted to Create But Couldn't</h2>
+                            <h2 className="text-xl font-bold mb-4">What We Wanted to Create But Couldn&apos;t</h2>
                             
                             <h3 className="text-lg font-semibold mb-2">LLM Fine-Tuning with Our Dataset</h3>
                             <p className="mb-4 ml-4">
                                 We initially planned to fine-tune a language model (DeepSeek) using our meticulously prepared dataset—
                                 comprising diverse user interactions, successful CV examples, and integrated SEO strategies—to achieve 
                                 even greater content nuance. However, persistent API errors and rate limiting forced us to pivot and 
-                                rely on Opus's built-in AI capabilities.
+                                rely on Opus&apos;s built-in AI capabilities.
                             </p>
                             <p className="mb-4 ml-4">
                                 View our dataset and training preparation materials{' '}
@@ -596,7 +596,7 @@ export default function AboutPage() {
                             <ul className="list-disc list-inside space-y-1 ml-8 mb-4">
                                 <li>Generous timeout windows (60-120 seconds)</li>
                                 <li>User-facing progress indicators with elapsed time</li>
-                                <li>Graceful degradation: LinkedIn failure doesn't block GitHub data</li>
+                                <li>Graceful degradation: LinkedIn failure doesn&apos;t block GitHub data</li>
                                 <li>Manual experience input fallback</li>
                                 <li>Clear error messages guiding retry attempts</li>
                             </ul>
@@ -636,7 +636,7 @@ export default function AboutPage() {
                         <section>
                             <h2 className="text-xl font-bold mb-4">Future Roadmap</h2>
                             <p className="mb-4">
-                                We're constantly iterating to make MakeMyCv more powerful:
+                                We&apos;re constantly iterating to make MakeMyCv more powerful:
                             </p>
                             <ul className="list-disc list-inside space-y-2 ml-4 mb-4">
                                 <li>
@@ -676,10 +676,10 @@ export default function AboutPage() {
                             
                             <h3 className="text-lg font-semibold mb-2">How to Test the Application</h3>
                             <p className="mb-4 ml-4">
-                                1. Visit the live deployment and click "Create CV"
+                                1. Visit the live deployment and click &ldquo;Create CV&rdquo;
                             </p>
                             <p className="mb-4 ml-4">
-                                2. Select "Professional" template to trigger full Opus workflow
+                                2. Select &ldquo;Professional&rdquo; template to trigger full Opus workflow
                             </p>
                             <p className="mb-4 ml-4">
                                 3. Enter test data:
@@ -694,7 +694,7 @@ export default function AboutPage() {
                                 4. Paste any job description (AI Engineer, Software Developer, etc.)
                             </p>
                             <p className="mb-4 ml-4">
-                                5. Click "Next" and observe:
+                                5. Click &ldquo;Next&rdquo; and observe:
                             </p>
                             <ul className="list-disc list-inside space-y-1 ml-8 mb-4">
                                 <li>Workflow initialization and schema fetch</li>

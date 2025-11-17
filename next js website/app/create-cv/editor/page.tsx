@@ -18,6 +18,7 @@ export default function CVEditorPage() {
   const [compilationError, setCompilationError] = useState<string | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [isCompilingPreview, setIsCompilingPreview] = useState(false)
+  const [showLoadedBanner, setShowLoadedBanner] = useState(false)
 
   // Load LaTeX code from localStorage (if coming from Opus workflow)
   React.useEffect(() => {
@@ -25,10 +26,12 @@ export default function CVEditorPage() {
     if (savedLatex) {
       setLatexCode(savedLatex)
       localStorage.removeItem('cvLatexCode') // Clean up after loading
-      // Auto-compile the loaded code
+      // Show banner to prompt user to compile
+      setShowLoadedBanner(true)
+      // Auto-hide banner after 10 seconds
       setTimeout(() => {
-        handleCompilePreview()
-      }, 500)
+        setShowLoadedBanner(false)
+      }, 10000)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -54,6 +57,7 @@ export default function CVEditorPage() {
   const handleCompilePreview = async () => {
     setIsCompilingPreview(true)
     setCompilationError(null)
+    setShowLoadedBanner(false) // Hide the banner when user compiles
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -213,6 +217,23 @@ export default function CVEditorPage() {
                 </Button>
               </div>
             </div>
+
+            {/* LaTeX Code Loaded Banner */}
+            {showLoadedBanner && (
+              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-start gap-3">
+                <Check className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-green-800 font-medium">LaTeX code loaded successfully!</p>
+                  <p className="text-xs text-green-700 mt-1">Click &quot;Compile LaTeX&quot; to generate your PDF preview</p>
+                </div>
+                <button
+                  onClick={() => setShowLoadedBanner(false)}
+                  className="text-green-600 hover:text-green-800 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
 
             {/* Info Banner - Inline */}
             <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
