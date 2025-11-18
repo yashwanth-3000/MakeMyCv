@@ -18,6 +18,39 @@ export default function AboutPage() {
                             <h1 className="text-3xl font-bold mb-8">MakeMyCv - AI-Native CV Builder</h1>
                         </section>
 
+                        {/* Workflow Links */}
+                        <section className="mb-8 p-4 bg-zinc-50 rounded-lg border border-zinc-200">
+                            <h2 className="text-lg font-semibold mb-3">Opus Workflows</h2>
+                            <div className="space-y-2">
+                                <div>
+                                    <p className="text-sm mb-1">
+                                        <strong>1st workflow</strong> (present in the website):
+                                    </p>
+                                    <Link 
+                                        href="https://app.opus.com/app/workflow/share/697ebcf7-1c14-4ff1-9b54-7ed615563a99"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-red-500 hover:text-red-400 underline text-sm break-all"
+                                    >
+                                        https://app.opus.com/app/workflow/share/697ebcf7-1c14-4ff1-9b54-7ed615563a99
+                                    </Link>
+                                </div>
+                                <div>
+                                    <p className="text-sm mb-1">
+                                        <strong>2nd workflow</strong> (if want review):
+                                    </p>
+                                    <Link 
+                                        href="https://app.opus.com/app/workflow/share/3d0b2ffa-b820-41ee-91f1-812d0c2069b3"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-red-500 hover:text-red-400 underline text-sm break-all"
+                                    >
+                                        https://app.opus.com/app/workflow/share/3d0b2ffa-b820-41ee-91f1-812d0c2069b3
+                                    </Link>
+                                </div>
+                            </div>
+                        </section>
+
                         {/* Project Explanation Video */}
                         <section>
                             <div className="mb-8">
